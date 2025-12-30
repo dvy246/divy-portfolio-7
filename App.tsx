@@ -1,5 +1,5 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { Skills } from './components/Skills';
@@ -29,9 +29,10 @@ const MainPortfolio: React.FC = () => {
   );
 };
 
-// Wrapper to hide cursor/scroll progress on Admin routes
+// Wrapper to hide cursor/scroll progress on Admin routes if desired
 const AppContent: React.FC = () => {
     const location = useLocation();
+    // In HashRouter, pathname might be '/' or '/login' correctly.
     const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname === '/login';
 
     return (
@@ -40,13 +41,11 @@ const AppContent: React.FC = () => {
           {!isAdminRoute && <ScrollProgress />}
           
           <Routes>
-            {/* Main Routes */}
             <Route path="/" element={<MainPortfolio />} />
             <Route path="/login" element={<Login />} />
             <Route path="/admin" element={<AdminDashboard />} />
-
-            {/* ⚠️ CATCH-ALL ROUTE: This fixes the Black Screen if path is weird */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* Fallback route to redirect to home if path doesn't match */}
+            <Route path="*" element={<MainPortfolio />} />
           </Routes>
         </main>
     )
@@ -54,7 +53,6 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    // Switched to HashRouter for robust client-side routing
     <Router>
       <PortfolioProvider>
         <AppContent />
