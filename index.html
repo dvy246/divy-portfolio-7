@@ -40,50 +40,19 @@
       }
     </script>
     <style>
-      /* Hide default cursor to use custom one */
-      body {
-        cursor: none;
-      }
-      /* Fallback for touch devices where custom cursor might get in the way */
+      body { cursor: none; }
       @media (pointer: coarse) {
-        body {
-          cursor: auto;
-        }
-        .custom-cursor {
-          display: none;
-        }
+        body { cursor: auto; }
+        .custom-cursor { display: none; }
       }
-      
-      /* Scrollbar styling */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #555;
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #888;
-      }
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+      ::-webkit-scrollbar-thumb:hover { background: #888; }
     </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "framer-motion": "https://esm.sh/framer-motion@^12.23.26",
-    "react-router-dom": "https://esm.sh/react-router-dom@6.22.3",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.7"
-  }
-}
-</script>
 </head>
   <body class="bg-light-bg text-light-text dark:bg-dark-bg dark:text-dark-text transition-colors duration-500 selection:bg-light-accent selection:text-white dark:selection:bg-dark-accent dark:selection:text-black">
     <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
   </body>
 </html>
