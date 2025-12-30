@@ -30,12 +30,13 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     
     // If Supabase is not configured, we just use the static data immediately
     if (!supabase) {
-      console.log("Supabase not configured, using static fallback data.");
+      console.info("Info: Supabase keys not found. App running in Static Demo Mode. Configure keys in Admin Dashboard to connect to live DB.");
       setIsLoading(false);
       return;
     }
 
     try {
+      console.log("Connecting to Supabase...");
       // Attempt to fetch from Supabase
       // We use Promise.allSettled to allow partial failures
       const results = await Promise.allSettled([
@@ -46,18 +47,19 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         supabase.from('resume').select('*').order('id', { ascending: false })
       ]);
 
-      const newData = { ...data };
-
-      // Update if fetch was successful, otherwise keep static default
-      if (results[0].status === 'fulfilled' && results[0].value.data) {
-         // Logic to map database columns to object structure would go here
-         // keeping simplified for this demo
+      // In a real implementation, we would map the 'results' to the state here.
+      // Since this is likely a demo without a real populated DB matching the schema exactly,
+      // we might want to keep using static data if the DB returns empty.
+      
+      // For this portfolio template, we will log success but keep static data 
+      // unless you implement the specific mapping logic based on your DB schema.
+      const successfulFetches = results.filter(r => r.status === 'fulfilled');
+      if (successfulFetches.length > 0) {
+          console.log(`Successfully connected to Supabase! Fetched ${successfulFetches.length} tables.`);
       }
-      
-      // In a real scenario, we would map the DB response to the State
-      // For now, we simulate a network delay then use static data (as we can't really hit a DB here)
-      
-      console.log("Data refreshed from source");
+
+      // To actually use DB data, you would do:
+      // if (results[0].status === 'fulfilled' && results[0].value.data) setData(prev => ({...prev, personalInfo: results[0].value.data}));
       
     } catch (error) {
       console.error("Error fetching data, falling back to static:", error);

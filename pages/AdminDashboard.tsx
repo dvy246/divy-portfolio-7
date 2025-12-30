@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, LogOut, CheckCircle, Layout, Edit3, Plus, Trash2 } from 'lucide-react';
+import { Save, LogOut, CheckCircle, Layout, Edit3, Plus, Trash2, Database, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 import { supabase } from '../lib/supabase';
@@ -8,12 +8,22 @@ import { supabase } from '../lib/supabase';
 export const AdminDashboard: React.FC = () => {
   const { personalInfo, refreshData } = usePortfolio();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'profile' | 'projects' | 'resume'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'projects' | 'resume' | 'settings'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Local state for editing (simplified for Profile)
+  // Local state for editing
   const [bio, setBio] = useState(personalInfo.subHeadline);
+
+  // Local state for Settings
+  const [dbUrl, setDbUrl] = useState('');
+  const [dbKey, setDbKey] = useState('');
+
+  useEffect(() => {
+    // Load existing keys from localStorage if they exist
+    setDbUrl(localStorage.getItem('REACT_APP_SUPABASE_URL') || '');
+    setDbKey(localStorage.getItem('REACT_APP_SUPABASE_ANON_KEY') || '');
+  }, []);
 
   const handleLogout = async () => {
     if (supabase) await supabase.auth.signOut();
@@ -23,7 +33,17 @@ export const AdminDashboard: React.FC = () => {
   const handleSave = async () => {
     setIsSaving(true);
     
-    // Simulate API call delay
+    if (activeTab === 'settings') {
+        // Save to localStorage and reload to re-init supabase client
+        localStorage.setItem('REACT_APP_SUPABASE_URL', dbUrl);
+        localStorage.setItem('REACT_APP_SUPABASE_ANON_KEY', dbKey);
+        
+        await new Promise(resolve => setTimeout(resolve, 500)); // UX delay
+        window.location.reload();
+        return;
+    }
+
+    // Simulate API call delay for other tabs
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     // In real app: await supabase.from('profile').update({ subHeadline: bio })...
@@ -34,13 +54,23 @@ export const AdminDashboard: React.FC = () => {
     refreshData();
   };
 
+  const clearSettings = () => {
+      if(confirm("Are you sure? This will disconnect the database and return to Demo Mode.")) {
+        localStorage.removeItem('REACT_APP_SUPABASE_URL');
+        localStorage.removeItem('REACT_APP_SUPABASE_ANON_KEY');
+        window.location.reload();
+      }
+  }
+
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col">
       {/* Admin Navbar */}
       <nav className="border-b border-white/10 px-6 py-4 flex justify-between items-center bg-[#0a0a0a]">
         <div className="flex items-center gap-3">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
-            <span className="font-mono text-dark-accent font-bold">ADMIN_CONTROLS</span>
+            <div className={`w-3 h-3 rounded-full animate-pulse ${supabase ? 'bg-green-500' : 'bg-yellow-500'}`} />
+            <span className="font-mono text-dark-accent font-bold">
+                {supabase ? 'LIVE_MODE' : 'DEMO_MODE'}
+            </span>
         </div>
         <button onClick={handleLogout} className="flex items-center gap-2 text-sm font-mono text-gray-400 hover:text-white transition-colors">
             <LogOut size={16} /> LOGOUT
@@ -69,6 +99,15 @@ export const AdminDashboard: React.FC = () => {
                 >
                     <Layout size={16} /> Resume
                 </button>
+                
+                <div className="my-4 border-t border-white/10" />
+                
+                <button 
+                    onClick={() => setActiveTab('settings')}
+                    className={`w-full text-left px-4 py-3 rounded font-mono text-sm flex items-center gap-3 transition-colors ${activeTab === 'settings' ? 'bg-dark-accent/10 text-dark-accent border border-dark-accent/30' : 'text-gray-500 hover:text-white'}`}
+                >
+                    <Settings size={16} /> Connection
+                </button>
             </div>
         </aside>
 
@@ -80,6 +119,7 @@ export const AdminDashboard: React.FC = () => {
                         {activeTab === 'profile' && 'Edit Profile Info'}
                         {activeTab === 'projects' && 'Manage Projects'}
                         {activeTab === 'resume' && 'Resume Timeline'}
+                        {activeTab === 'settings' && 'Database Connection'}
                     </h1>
                     
                     <motion.button
@@ -92,7 +132,7 @@ export const AdminDashboard: React.FC = () => {
                             <span className="animate-pulse">SAVING...</span>
                         ) : (
                             <>
-                                <Save size={18} /> SAVE CHANGES
+                                <Save size={18} /> {activeTab === 'settings' ? 'CONNECT' : 'SAVE CHANGES'}
                             </>
                         )}
                     </motion.button>
@@ -131,6 +171,52 @@ export const AdminDashboard: React.FC = () => {
                             </button>
                         </div>
                     )}
+
+                    {activeTab === 'settings' && (
+                        <div className="space-y-8">
+                             <div className="flex items-center gap-4 p-4 bg-blue-900/10 border border-blue-500/20 rounded">
+                                <Database className="text-blue-400" size={24} />
+                                <div className="text-sm text-blue-200">
+                                    <p className="font-bold">Supabase Configuration</p>
+                                    <p className="opacity-70">Enter your project credentials to connect a live database. These are stored locally in your browser.</p>
+                                </div>
+                             </div>
+
+                             <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-mono text-gray-500 uppercase block">Project URL</label>
+                                    <input 
+                                        type="text" 
+                                        value={dbUrl}
+                                        onChange={(e) => setDbUrl(e.target.value)}
+                                        placeholder="https://xyz.supabase.co"
+                                        className="w-full bg-black border border-white/10 focus:border-dark-accent p-3 text-white outline-none rounded font-mono"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-mono text-gray-500 uppercase block">Anon / Public Key</label>
+                                    <input 
+                                        type="password" 
+                                        value={dbKey}
+                                        onChange={(e) => setDbKey(e.target.value)}
+                                        placeholder="eyJh..."
+                                        className="w-full bg-black border border-white/10 focus:border-dark-accent p-3 text-white outline-none rounded font-mono"
+                                    />
+                                </div>
+                             </div>
+
+                             {supabase && (
+                                 <div className="pt-8 border-t border-white/10">
+                                     <button 
+                                        onClick={clearSettings}
+                                        className="text-red-400 text-sm font-mono flex items-center gap-2 hover:text-red-300 transition-colors"
+                                     >
+                                         <Trash2 size={16} /> Disconnect & Reset to Demo
+                                     </button>
+                                 </div>
+                             )}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -151,7 +237,9 @@ export const AdminDashboard: React.FC = () => {
                             >
                                 <CheckCircle size={64} className="text-green-500" strokeWidth={1.5} />
                             </motion.div>
-                            <h2 className="text-xl font-sketch font-bold text-green-400">System Updated</h2>
+                            <h2 className="text-xl font-sketch font-bold text-green-400">
+                                {activeTab === 'settings' ? 'Connected!' : 'System Updated'}
+                            </h2>
                         </div>
                     </motion.div>
                 )}
