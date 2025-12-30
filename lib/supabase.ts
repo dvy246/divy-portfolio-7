@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-// use import.meta.env for Vite, not process.env
+// VITE_ variables are how we talk to Vercel
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
