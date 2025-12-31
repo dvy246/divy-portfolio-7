@@ -4,6 +4,7 @@ import { X, Cpu, ChevronRight } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
 import { ElectricOverlay } from './ElectricOverlay';
 import { ThunderStrike } from './ThunderStrike';
+import { CardContainer, CardBody, CardItem } from './ui/3d-card';
 
 export const Skills: React.FC = () => {
   const { skills } = usePortfolio();
@@ -50,68 +51,61 @@ export const Skills: React.FC = () => {
             </p>
         </motion.div>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Main Grid with 3D Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {skills.map((category, index) => (
-            <motion.div
-              key={category.id}
-              layoutId={`card-${category.id}`}
-              onClick={() => handleCardClick(category)}
-              onHoverStart={() => setHoveredCard(category.id)}
-              onHoverEnd={() => setHoveredCard(null)}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ 
-                scale: 1.02, 
-                backgroundColor: "rgba(41, 216, 255, 0.05)"
-              }}
-              whileTap={{ scale: 0.98 }}
-              className="group cursor-pointer relative p-8 border-2 border-light-text/10 dark:border-dark-text/10 bg-white/5 dark:bg-[#0a0a0a] backdrop-blur-sm overflow-hidden"
-              style={{
-                borderRadius: "2px 20px 2px 20px"
-              }}
-            >
-              {/* Lightning Effect on Hover */}
-              {hoveredCard === category.id && <ElectricOverlay />}
+            <div key={category.id} className="h-[300px]" onClick={() => handleCardClick(category)}>
+                <CardContainer className="inter-var w-full h-full" containerClassName="w-full h-full">
+                    <CardBody 
+                        className="bg-white/5 dark:bg-[#0a0a0a] relative group/card border-2 border-dashed border-light-text/10 dark:border-dark-text/20 w-full h-full rounded-xl p-8 flex flex-col justify-between overflow-hidden cursor-pointer hover:border-light-accent dark:hover:border-dark-accent dark:hover:shadow-[0_0_20px_rgba(41,216,255,0.15)] transition-colors"
+                    >
+                        {/* Hover Overlay */}
+                        <div className="absolute inset-0 opacity-0 group-hover/card:opacity-100 transition-opacity z-0 pointer-events-none">
+                            <ElectricOverlay />
+                        </div>
+                        
+                        {/* Technical Corners */}
+                        <div className="absolute top-2 left-2 w-2 h-2 border border-light-text/20 dark:border-dark-text/20 rounded-full" />
+                        <div className="absolute top-2 right-2 w-2 h-2 border border-light-text/20 dark:border-dark-text/20 rounded-full" />
+                        <div className="absolute bottom-2 left-2 w-2 h-2 border border-light-text/20 dark:border-dark-text/20 rounded-full" />
+                        <div className="absolute bottom-2 right-2 w-2 h-2 border border-light-text/20 dark:border-dark-text/20 rounded-full" />
 
-              {/* Corner Accents */}
-              <div className="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-light-accent dark:border-dark-accent opacity-50" />
-              <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-light-accent dark:border-dark-accent opacity-50" />
+                        {/* Top Section */}
+                        <div className="flex items-start justify-between relative z-10">
+                            <CardItem translateZ="60">
+                                <div className="p-3 bg-light-accent/10 dark:bg-dark-accent/10 rounded-lg group-hover/card:bg-light-accent group-hover/card:text-white dark:group-hover/card:bg-dark-accent dark:group-hover/card:text-black transition-colors duration-300">
+                                    <category.icon size={32} strokeWidth={1.5} />
+                                </div>
+                            </CardItem>
+                            <CardItem translateZ="30">
+                                <ChevronRight className="text-light-text/20 dark:text-dark-text/20 group-hover/card:text-light-accent dark:group-hover/card:text-dark-accent transition-colors" />
+                            </CardItem>
+                        </div>
 
-              <div className="flex items-center justify-between mb-6 relative z-10">
-                 {/* Intense Glow on Icon when Hovered */}
-                 <motion.div 
-                    layoutId={`icon-${category.id}`} 
-                    className="p-3 bg-light-accent/10 dark:bg-dark-accent/10 rounded-lg"
-                    animate={{
-                        boxShadow: hoveredCard === category.id ? "0 0 20px rgba(41, 216, 255, 0.6)" : "0 0 0px rgba(0,0,0,0)",
-                        scale: hoveredCard === category.id ? 1.1 : 1
-                    }}
-                 >
-                    <category.icon size={32} className="text-light-accent dark:text-dark-accent" strokeWidth={1.5} />
-                 </motion.div>
-                 <ChevronRight className="text-light-text/20 dark:text-dark-text/20 group-hover:text-light-accent dark:group-hover:text-dark-accent transition-colors" />
-              </div>
+                        {/* Middle Section */}
+                        <div className="relative z-10 mt-4">
+                            <CardItem translateZ="50" className="text-2xl font-sketch font-bold mb-2 text-light-text dark:text-dark-text">
+                                {category.name}
+                            </CardItem>
+                            <CardItem translateZ="40" className="text-sm font-sans text-light-text/60 dark:text-dark-text/60 leading-relaxed">
+                                {category.description}
+                            </CardItem>
+                        </div>
 
-              <motion.h3 layoutId={`title-${category.id}`} className="text-2xl font-sketch font-bold mb-2 relative z-10">
-                {category.name}
-              </motion.h3>
-              
-              <motion.p layoutId={`desc-${category.id}`} className="text-sm font-sans text-light-text/60 dark:text-dark-text/60 relative z-10">
-                {category.description}
-              </motion.p>
-              
-              <div className="mt-4 pt-4 border-t border-dashed border-light-text/10 dark:border-dark-text/10 flex items-center gap-2 text-xs font-mono text-light-text/40 dark:text-dark-text/40 relative z-10">
-                <Cpu size={12} />
-                <span>{category.techStack.length} Technologies</span>
-              </div>
-            </motion.div>
+                        {/* Bottom Section */}
+                        <div className="mt-4 pt-4 border-t border-dashed border-light-text/10 dark:border-dark-text/10 flex items-center gap-2 relative z-10">
+                            <CardItem translateZ="30" className="flex items-center gap-2 text-xs font-mono text-light-text/40 dark:text-dark-text/40">
+                                <Cpu size={12} />
+                                <span>{category.techStack.length} MODULES INSTALLED</span>
+                            </CardItem>
+                        </div>
+                    </CardBody>
+                </CardContainer>
+            </div>
           ))}
         </div>
 
-        {/* Detailed Modal Overlay */}
+        {/* Detailed Modal Overlay (Unchanged logic, just keeping it here) */}
         <AnimatePresence>
           {selectedCategory && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10">

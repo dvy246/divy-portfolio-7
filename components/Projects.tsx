@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ExternalLink, Github, Lock, Unlock, Cpu, Disc } from 'lucide-react';
+import { ExternalLink, Github, Lock, Unlock, Cpu } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
 import { ElectricOverlay } from './ElectricOverlay';
 import { ThunderStrike } from './ThunderStrike';
 import { Starfield } from './Starfield';
+import { CardContainer, CardBody, CardItem } from './ui/3d-card';
 
 export const Projects: React.FC = () => {
   const { projects } = usePortfolio();
@@ -55,139 +56,119 @@ export const Projects: React.FC = () => {
             const isHovered = hoveredProject === project.id;
 
             return (
-                <motion.div
-                    key={project.id}
-                    onHoverStart={() => setHoveredProject(project.id)}
-                    onHoverEnd={() => setHoveredProject(null)}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true, margin: "-50px" }}
-                    transition={{ delay: index * 0.1 }}
-                    className="relative group min-h-[400px]"
-                >
-                    <AnimatePresence mode='wait'>
-                        {!isRevealed ? (
-                            // --- LOCKED STATE ---
-                            <motion.div
-                                key="locked"
-                                exit={{ opacity: 0, scale: 1.1, filter: "brightness(2)" }}
-                                onClick={() => handleDecrypt(project.id)}
-                                className="absolute inset-0 bg-[#0a0a0a] border-2 border-dashed border-dark-accent/20 cursor-pointer overflow-hidden flex flex-col items-center justify-center p-8 text-center"
-                                style={{
-                                    borderRadius: "2px 20px 2px 20px",
-                                    boxShadow: isHovered ? "0 0 30px rgba(41, 216, 255, 0.15)" : "none"
-                                }}
-                            >
-                                {/* Scanlines */}
-                                <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] z-0 bg-[length:100%_4px,3px_100%] pointer-events-none" />
-                                
-                                {/* Electric Effect on Hover */}
-                                {isHovered && <ElectricOverlay />}
+              <div key={project.id} className="min-h-[450px]">
+                <CardContainer className="inter-var w-full h-full" containerClassName="w-full h-full">
+                    {!isRevealed ? (
+                        // --- LOCKED STATE (3D) ---
+                        <CardBody className="bg-[#050505] relative group/card border-2 border-dashed border-dark-accent/30 w-full h-full rounded-xl p-8 flex flex-col items-center justify-center overflow-hidden hover:border-dark-accent hover:shadow-[0_0_30px_rgba(41,216,255,0.1)] transition-all duration-300">
+                             {/* Sketchy Corners */}
+                             <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-dark-accent" />
+                             <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-dark-accent" />
+                             <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-dark-accent" />
+                             <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-dark-accent" />
 
-                                {/* Animated Lock Icon */}
-                                <motion.div
-                                    animate={{ 
-                                        scale: isHovered ? [1, 1.2, 1] : 1,
-                                        rotate: isHovered ? [0, -10, 10, 0] : 0,
-                                        filter: isHovered ? "drop-shadow(0 0 15px rgba(41,216,255,0.8))" : "drop-shadow(0 0 0px rgba(0,0,0,0))"
-                                    }}
-                                    transition={{ duration: 0.4 }}
-                                    className="mb-6 relative z-10 p-6 rounded-full border border-dark-accent/30 bg-dark-accent/5"
-                                >
-                                    {isHovered ? (
-                                        <Unlock size={48} className="text-dark-accent" />
-                                    ) : (
-                                        <Lock size={48} className="text-gray-500" />
-                                    )}
-                                </motion.div>
+                             <div className="absolute inset-0 bg-grid-dark opacity-20" />
+                             
+                             {/* Hover Electric Effect */}
+                             {isHovered && <ElectricOverlay className="opacity-50" />}
 
-                                <h3 className="text-2xl font-mono font-bold text-white mb-2 relative z-10">
+                             <div onClick={() => handleDecrypt(project.id)} className="cursor-pointer w-full h-full flex flex-col items-center justify-center">
+                                <CardItem translateZ="50" className="mb-6 relative">
+                                    <div className={`p-8 rounded-full border border-dark-accent/30 bg-dark-accent/5 transition-all duration-300 ${isHovered ? 'bg-dark-accent/20 shadow-[0_0_20px_rgba(41,216,255,0.5)]' : ''}`}>
+                                        {isHovered ? (
+                                            <Unlock size={64} className="text-dark-accent" />
+                                        ) : (
+                                            <Lock size={64} className="text-gray-600" />
+                                        )}
+                                    </div>
+                                </CardItem>
+
+                                <CardItem translateZ="60" className="text-2xl font-mono font-bold text-white mb-2 text-center">
                                     {isHovered ? "READY TO DECRYPT" : "FILE ENCRYPTED"}
-                                </h3>
-                                <p className="text-dark-accent font-mono text-xs uppercase tracking-widest relative z-10">
-                                    {isHovered ? ">>> INITIATE NEURAL LINK <<<" : `SECURE_ID: ${project.id}X-AF`}
-                                </p>
-
-                                {/* Calling Text */}
-                                {isHovered && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="absolute bottom-10 text-xs font-sketch text-dark-accent animate-pulse"
-                                    >
-                                        CLICK TO ACCESS
-                                    </motion.div>
-                                )}
-                            </motion.div>
-                        ) : (
-                            // --- REVEALED (SPACE) STATE ---
-                            <motion.div
-                                key="revealed"
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                                className="absolute inset-0 border border-dark-accent/50 overflow-hidden flex flex-col"
-                                style={{
-                                    borderRadius: "2px 20px 2px 25px"
-                                }}
-                            >
-                                {/* Space Background */}
-                                <Starfield />
+                                </CardItem>
                                 
-                                {/* Content Wrapper */}
-                                <div className="relative z-10 flex flex-col h-full bg-black/20 backdrop-blur-[2px]">
-                                    
-                                    {/* Project Image Area */}
-                                    <div className="h-48 relative overflow-hidden border-b border-dark-accent/20 group-hover:h-56 transition-all duration-500">
-                                        <div className="absolute inset-0 bg-dark-accent/10 mix-blend-overlay z-10" />
-                                        <img 
-                                            src={project.image} 
-                                            alt={project.title}
-                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                        />
-                                        {/* Sci-Fi Overlay UI on Image */}
-                                        <div className="absolute top-2 left-2 flex gap-1">
-                                            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                                            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse delay-75" />
-                                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse delay-150" />
-                                        </div>
-                                    </div>
+                                <CardItem translateZ="40" className="text-dark-accent font-mono text-xs uppercase tracking-widest text-center">
+                                    {isHovered ? ">>> INITIATE NEURAL LINK <<<" : `SECURE_ID: ${project.id}X-AF`}
+                                </CardItem>
 
-                                    {/* Info Area */}
-                                    <div className="p-6 flex flex-col flex-grow">
-                                        <div className="flex justify-between items-start mb-2">
-                                            <h3 className="text-2xl font-sketch font-bold text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
-                                                {project.title}
-                                            </h3>
-                                            <Cpu size={20} className="text-dark-accent" />
-                                        </div>
-
-                                        <p className="text-gray-300 text-sm mb-6 flex-grow font-sans leading-relaxed drop-shadow-md">
-                                            {project.description}
-                                        </p>
-
-                                        <div className="flex flex-wrap gap-2 mb-6">
-                                            {project.tags.map(tag => (
-                                                <span key={tag} className="text-[10px] font-mono px-2 py-1 border border-dark-accent/40 bg-dark-accent/10 rounded text-dark-accent backdrop-blur-sm">
-                                                    {tag}
-                                                </span>
-                                            ))}
-                                        </div>
-
-                                        <div className="flex gap-4 mt-auto">
-                                            <a href={project.liveLink} className="flex-1 py-2 flex items-center justify-center gap-2 bg-white text-black font-bold text-sm uppercase tracking-wider hover:bg-dark-accent transition-colors clip-path-polygon">
-                                                <ExternalLink size={16} /> Launch
-                                            </a>
-                                            <a href={project.githubLink} className="flex-1 py-2 flex items-center justify-center gap-2 border border-white/30 text-white font-bold text-sm uppercase tracking-wider hover:border-dark-accent hover:text-dark-accent transition-colors bg-black/50">
-                                                <Github size={16} /> Source
-                                            </a>
-                                        </div>
-                                    </div>
+                                {isHovered && (
+                                    <CardItem translateZ="30" className="mt-8 px-4 py-2 border border-dark-accent text-dark-accent text-xs font-sketch animate-pulse">
+                                        CLICK TO ACCESS
+                                    </CardItem>
+                                )}
+                             </div>
+                        </CardBody>
+                    ) : (
+                        // --- REVEALED STATE (3D) ---
+                        <CardBody className="bg-[#080808] relative group/card border border-dark-accent/50 w-full h-full rounded-xl overflow-hidden flex flex-col">
+                             {/* Space Background Layer */}
+                             <div className="absolute inset-0 z-0">
+                                 <Starfield />
+                             </div>
+                             
+                             {/* Header Image with 3D Pop */}
+                             <CardItem translateZ="50" className="w-full h-48 relative border-b border-dark-accent/30 group-hover/card:h-56 transition-all duration-500 overflow-hidden">
+                                <img 
+                                    src={project.image} 
+                                    alt={project.title}
+                                    className="w-full h-full object-cover group-hover/card:scale-110 transition-transform duration-700"
+                                />
+                                <div className="absolute inset-0 bg-dark-accent/10 mix-blend-overlay" />
+                                
+                                {/* Sci-Fi UI Overlay on Image */}
+                                <div className="absolute top-2 left-2 flex gap-1 bg-black/50 p-1 rounded backdrop-blur-sm">
+                                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse delay-75" />
+                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse delay-150" />
                                 </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-                </motion.div>
+                             </CardItem>
+
+                             {/* Content Area */}
+                             <div className="p-6 relative z-10 flex flex-col flex-grow bg-black/40 backdrop-blur-[2px]">
+                                <div className="flex justify-between items-start mb-4">
+                                    <CardItem translateZ="60" className="text-2xl font-sketch font-bold text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">
+                                        {project.title}
+                                    </CardItem>
+                                    <CardItem translateZ="40">
+                                        <Cpu size={20} className="text-dark-accent" />
+                                    </CardItem>
+                                </div>
+
+                                <CardItem translateZ="30" className="text-gray-300 text-sm mb-6 font-sans leading-relaxed flex-grow">
+                                    {project.description}
+                                </CardItem>
+
+                                <CardItem translateZ="20" className="flex flex-wrap gap-2 mb-6">
+                                    {project.tags.map(tag => (
+                                        <span key={tag} className="text-[10px] font-mono px-2 py-1 border border-dark-accent/40 bg-dark-accent/10 rounded text-dark-accent">
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </CardItem>
+
+                                <div className="flex gap-4 mt-auto">
+                                    <CardItem 
+                                        translateZ="40"
+                                        as="a"
+                                        href={project.liveLink}
+                                        className="flex-1 py-2 flex items-center justify-center gap-2 bg-white text-black font-bold text-sm uppercase tracking-wider hover:bg-dark-accent transition-colors rounded-sm"
+                                    >
+                                        <ExternalLink size={16} /> Launch
+                                    </CardItem>
+                                    <CardItem 
+                                        translateZ="40"
+                                        as="a"
+                                        href={project.githubLink}
+                                        className="flex-1 py-2 flex items-center justify-center gap-2 border border-white/30 text-white font-bold text-sm uppercase tracking-wider hover:border-dark-accent hover:text-dark-accent transition-colors bg-black/50 rounded-sm"
+                                    >
+                                        <Github size={16} /> Source
+                                    </CardItem>
+                                </div>
+                             </div>
+                        </CardBody>
+                    )}
+                </CardContainer>
+              </div>
             );
           })}
         </div>
