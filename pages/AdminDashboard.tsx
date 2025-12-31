@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, LogOut, CheckCircle, Layout, Edit3, Plus, Trash2, Database, Settings, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Save, LogOut, CheckCircle, Layout, Edit3, Plus, Trash2, Database, Settings, Upload, X, Image as ImageIcon, Briefcase, GraduationCap, FileText, RefreshCw, Rss } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 import { supabase } from '../lib/supabase';
 
-// Helper to upload images to Supabase Storage
-// Ensures unique filenames using Date.now()
+// --- Helpers defined OUTSIDE component to prevent re-render focus loss ---
+
 const uploadImage = async (file: File, bucket = 'portfolio-images') => {
   if (!supabase) throw new Error("Supabase not configured");
   
@@ -26,17 +26,50 @@ const uploadImage = async (file: File, bucket = 'portfolio-images') => {
   return data.publicUrl;
 };
 
+// Reusable Input Component
+const InputField = ({ label, value, onChange, type="text", placeholder="", options = [] as string[], className="" }: any) => (
+  <div className={`space-y-2 ${className}`}>
+    <label className="text-xs font-mono text-gray-500 uppercase block">{label}</label>
+    {type === 'textarea' ? (
+        <textarea 
+            value={value} onChange={e => onChange(e.target.value)} rows={4}
+            className="w-full bg-black border border-white/10 focus:border-dark-accent p-3 text-white outline-none rounded font-sans focus:ring-1 focus:ring-dark-accent transition-all"
+            placeholder={placeholder}
+        />
+    ) : type === 'select' ? (
+        <div className="relative">
+            <select 
+                value={value} 
+                onChange={e => onChange(e.target.value)}
+                className="w-full bg-black border border-white/10 focus:border-dark-accent p-3 text-white outline-none rounded font-sans focus:ring-1 focus:ring-dark-accent transition-all appearance-none"
+            >
+                {options.map((opt: string) => (
+                    <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>
+                ))}
+            </select>
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                ▼
+            </div>
+        </div>
+    ) : (
+        <input 
+            type={type} value={value} onChange={e => onChange(e.target.value)}
+            className="w-full bg-black border border-white/10 focus:border-dark-accent p-3 text-white outline-none rounded font-sans focus:ring-1 focus:ring-dark-accent transition-all"
+            placeholder={placeholder}
+        />
+    )}
+  </div>
+);
+
 export const AdminDashboard: React.FC = () => {
-  const { personalInfo, projects, refreshData } = usePortfolio();
+  const { personalInfo, projects, resume, blogs, refreshData } = usePortfolio();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'profile' | 'projects' | 'resume' | 'settings'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'projects' | 'resume' | 'blogs' | 'settings'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Store the actual DB ID of the profile
-  const [profileId, setProfileId] = useState<number | null>(null);
-
   // --- Profile State ---
+  const [profileId, setProfileId] = useState<number | null>(null);
   const [profileForm, setProfileForm] = useState({
       name: '',
       headline: '',
@@ -47,7 +80,6 @@ export const AdminDashboard: React.FC = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   // --- Projects State ---
-  // null = list mode, {} = create mode, { ... } = edit mode
   const [editingProject, setEditingProject] = useState<any | null>(null); 
   const [projectForm, setProjectForm] = useState({
       title: '',
@@ -59,11 +91,26 @@ export const AdminDashboard: React.FC = () => {
   });
   const [projectImageFile, setProjectImageFile] = useState<File | null>(null);
 
+  // --- Resume State ---
+  const [editingResume, setEditingResume] = useState<any | null>(null);
+  const [resumeForm, setResumeForm] = useState({
+      type: 'work',
+      title: '',
+      company: '',
+      period: '',
+      description: '',
+      tags: ''
+  });
+
+  // --- Blogs / Medium State ---
+  const [mediumUsername, setMediumUsername] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+
   // --- Settings State ---
   const [dbUrl, setDbUrl] = useState('');
   const [dbKey, setDbKey] = useState('');
 
-  // 1. Load initial data from Context
+  // 1. Load Data on Mount & Updates
   useEffect(() => {
     if (personalInfo) {
         setProfileForm({
@@ -76,18 +123,13 @@ export const AdminDashboard: React.FC = () => {
     }
   }, [personalInfo]);
 
-  // 2. Fetch the REAL Profile ID from DB on mount to ensure we update the correct row
   useEffect(() => {
       const fetchProfileId = async () => {
           if (!supabase) return;
           try {
-            const { data, error } = await supabase.from('profile').select('id').limit(1).single();
-            if (data) {
-                setProfileId(data.id);
-            }
-          } catch (e) {
-              console.error("Could not fetch profile ID", e);
-          }
+            const { data } = await supabase.from('profile').select('id').limit(1).single();
+            if (data) setProfileId(data.id);
+          } catch (e) { console.error(e); }
       };
       fetchProfileId();
   }, []);
@@ -97,6 +139,7 @@ export const AdminDashboard: React.FC = () => {
     setDbKey(localStorage.getItem('REACT_APP_SUPABASE_ANON_KEY') || '');
   }, []);
 
+  // --- Actions ---
   const handleLogout = async () => {
     if (supabase) await supabase.auth.signOut();
     navigate('/login');
@@ -107,22 +150,16 @@ export const AdminDashboard: React.FC = () => {
       setTimeout(() => setShowSuccess(false), 2000);
   }
 
-  // --- Handlers: Profile ---
-
+  // --- PROFILE HANDLERS ---
   const handleProfileSave = async () => {
     setIsSaving(true);
     try {
-        if (!supabase) {
-             // Demo mode simulation
-            await new Promise(r => setTimeout(r, 1000));
-        } else {
+        if (!supabase) { await new Promise(r => setTimeout(r, 1000)); } 
+        else {
             let finalAvatarUrl = profileForm.avatarUrl;
-            
-            // Upload new avatar if selected
             if (avatarFile) {
                 finalAvatarUrl = await uploadImage(avatarFile);
             }
-
             const payload = {
                 name: profileForm.name,
                 headline: profileForm.headline,
@@ -131,31 +168,22 @@ export const AdminDashboard: React.FC = () => {
                 avatar_url: finalAvatarUrl
             };
 
-            // If we found an existing ID, update it. Otherwise, insert new.
             if (profileId) {
                 const { error } = await supabase.from('profile').update(payload).eq('id', profileId);
                 if (error) throw error;
             } else {
                 const { error } = await supabase.from('profile').insert([payload]);
                 if (error) throw error;
-                // Fetch ID again for next time
                 const { data } = await supabase.from('profile').select('id').limit(1).single();
                 if (data) setProfileId(data.id);
             }
         }
-        
-        // Refresh context to show changes immediately
         await refreshData();
         showToast();
-    } catch (e: any) {
-        alert("Error saving profile: " + e.message);
-    } finally {
-        setIsSaving(false);
-    }
+    } catch (e: any) { alert("Error: " + e.message); } finally { setIsSaving(false); }
   };
 
-  // --- Handlers: Projects ---
-
+  // --- PROJECT HANDLERS ---
   const openProjectEditor = (project?: any) => {
       if (project) {
           setEditingProject(project);
@@ -168,42 +196,24 @@ export const AdminDashboard: React.FC = () => {
               image: project.image
           });
       } else {
-          // New Project
           setEditingProject({}); 
           setProjectForm({ title: '', description: '', tags: '', liveLink: '', githubLink: '', image: '' });
       }
       setProjectImageFile(null);
   };
 
-  const handleDeleteProject = async (id: number) => {
-      if (!confirm("Are you sure you want to delete this project?")) return;
-      
-      if (supabase) {
-          const { error } = await supabase.from('projects').delete().eq('id', id);
-          if (error) { alert(error.message); return; }
-          await refreshData();
-      } else {
-          alert("Cannot delete in Demo Mode");
-      }
-  };
-
   const handleProjectSave = async () => {
       setIsSaving(true);
       try {
-          if (!supabase) {
-              await new Promise(r => setTimeout(r, 1000));
-          } else {
+          if (!supabase) { await new Promise(r => setTimeout(r, 1000)); }
+          else {
               let finalImageUrl = projectForm.image;
-              
-              // Upload new project image if selected
               if (projectImageFile) {
                   finalImageUrl = await uploadImage(projectImageFile);
               }
-
               const payload = {
                   title: projectForm.title,
                   description: projectForm.description,
-                  // Split tags string into array for Postgres
                   tags: projectForm.tags.split(',').map(t => t.trim()).filter(t => t),
                   image_url: finalImageUrl,
                   live_link: projectForm.liveLink,
@@ -211,26 +221,134 @@ export const AdminDashboard: React.FC = () => {
               };
 
               if (editingProject.id) {
-                  // UPDATE existing
                   const { error } = await supabase.from('projects').update(payload).eq('id', editingProject.id);
                   if (error) throw error;
               } else {
-                  // INSERT new
                   const { error } = await supabase.from('projects').insert([payload]);
                   if (error) throw error;
               }
           }
           await refreshData();
-          setEditingProject(null); // Close editor and return to list
+          setEditingProject(null);
           showToast();
-      } catch (e: any) {
-          alert("Error saving project: " + e.message);
-      } finally {
-          setIsSaving(false);
+      } catch (e: any) { alert("Error: " + e.message); } finally { setIsSaving(false); }
+  };
+
+  const handleDeleteProject = async (id: number) => {
+      if (!confirm("Delete this project?")) return;
+      if (supabase) {
+          const { error } = await supabase.from('projects').delete().eq('id', id);
+          if (error) alert(error.message);
+          else await refreshData();
       }
   };
 
-  // --- Handlers: Settings ---
+  // --- RESUME HANDLERS ---
+  const openResumeEditor = (item?: any) => {
+      if (item) {
+          setEditingResume(item);
+          setResumeForm({
+              type: item.type,
+              title: item.title,
+              company: item.company,
+              period: item.period,
+              description: item.description,
+              tags: Array.isArray(item.tags) ? item.tags.join(', ') : item.tags
+          });
+      } else {
+          setEditingResume({});
+          setResumeForm({ type: 'work', title: '', company: '', period: '', description: '', tags: '' });
+      }
+  };
+
+  const handleResumeSave = async () => {
+    setIsSaving(true);
+    try {
+        if (!supabase) { await new Promise(r => setTimeout(r, 1000)); }
+        else {
+            const payload = {
+                type: resumeForm.type,
+                title: resumeForm.title,
+                company: resumeForm.company,
+                period: resumeForm.period,
+                description: resumeForm.description,
+                tags: resumeForm.tags.split(',').map(t => t.trim()).filter(t => t)
+            };
+
+            if (editingResume.id) {
+                const { error } = await supabase.from('resume').update(payload).eq('id', editingResume.id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('resume').insert([payload]);
+                if (error) throw error;
+            }
+        }
+        await refreshData();
+        setEditingResume(null);
+        showToast();
+    } catch (e: any) { alert("Error: " + e.message); } finally { setIsSaving(false); }
+  };
+
+  const handleDeleteResume = async (id: number) => {
+      if (!confirm("Delete this entry?")) return;
+      if (supabase) {
+          const { error } = await supabase.from('resume').delete().eq('id', id);
+          if (error) alert(error.message);
+          else await refreshData();
+      }
+  };
+
+  // --- BLOG / MEDIUM SYNC HANDLERS ---
+  const handleMediumSync = async () => {
+      if (!mediumUsername) return alert("Please enter a Medium Username");
+      setIsSyncing(true);
+      try {
+          const response = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=https://medium.com/feed/@${mediumUsername}`);
+          const data = await response.json();
+          
+          if (data.status !== 'ok') throw new Error("Could not fetch Medium Feed");
+
+          if (!supabase) {
+              alert("Sync simulated (Demo Mode)");
+          } else {
+              // Map Medium items to our DB schema
+              const posts = data.items.map((item: any) => ({
+                  title: item.title,
+                  link: item.link,
+                  // Convert "2023-11-15 10:00:00" to "Nov 15, 2023"
+                  date: new Date(item.pubDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+              }));
+
+              // Insert loop (basic implementation)
+              for (const post of posts) {
+                  // Upsert based on link to avoid duplicates? 
+                  // Supabase simple insert for now, assuming user handles cleanup or we clear table first
+                  // A better way: Check if link exists
+                  const { data: existing } = await supabase.from('blogs').select('id').eq('link', post.link).single();
+                  if (!existing) {
+                      await supabase.from('blogs').insert([post]);
+                  }
+              }
+              await refreshData();
+              showToast();
+          }
+      } catch (e: any) {
+          alert("Sync Failed: " + e.message);
+      } finally {
+          setIsSyncing(false);
+      }
+  };
+
+  const handleDeleteBlog = async (id: number) => {
+    if (!confirm("Delete this blog link?")) return;
+    if (supabase) {
+        const { error } = await supabase.from('blogs').delete().eq('id', id);
+        if (error) alert(error.message);
+        else await refreshData();
+    }
+  };
+
+  // --- SETTINGS HANDLERS ---
   const handleConnectionSave = async () => {
     localStorage.setItem('REACT_APP_SUPABASE_URL', dbUrl);
     localStorage.setItem('REACT_APP_SUPABASE_ANON_KEY', dbKey);
@@ -245,28 +363,9 @@ export const AdminDashboard: React.FC = () => {
     }
   }
 
-  const InputField = ({ label, value, onChange, type="text", placeholder="" }: any) => (
-      <div className="space-y-2">
-        <label className="text-xs font-mono text-gray-500 uppercase block">{label}</label>
-        {type === 'textarea' ? (
-            <textarea 
-                value={value} onChange={e => onChange(e.target.value)} rows={4}
-                className="w-full bg-black border border-white/10 focus:border-dark-accent p-3 text-white outline-none rounded font-sans focus:ring-1 focus:ring-dark-accent transition-all"
-                placeholder={placeholder}
-            />
-        ) : (
-            <input 
-                type={type} value={value} onChange={e => onChange(e.target.value)}
-                className="w-full bg-black border border-white/10 focus:border-dark-accent p-3 text-white outline-none rounded font-sans focus:ring-1 focus:ring-dark-accent transition-all"
-                placeholder={placeholder}
-            />
-        )}
-      </div>
-  );
-
+  // --- RENDER ---
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col">
-      {/* Admin Navbar */}
       <nav className="border-b border-white/10 px-6 py-4 flex justify-between items-center bg-[#0a0a0a]">
         <div className="flex items-center gap-3">
             <div className={`w-3 h-3 rounded-full animate-pulse ${supabase ? 'bg-green-500' : 'bg-yellow-500'}`} />
@@ -289,38 +388,51 @@ export const AdminDashboard: React.FC = () => {
                 <button onClick={() => setActiveTab('projects')} className={`w-full text-left px-4 py-3 rounded font-mono text-sm flex items-center gap-3 transition-colors ${activeTab === 'projects' ? 'bg-dark-accent/10 text-dark-accent border border-dark-accent/30' : 'text-gray-500 hover:text-white'}`}>
                     <Layout size={16} /> Projects
                 </button>
+                <button onClick={() => setActiveTab('resume')} className={`w-full text-left px-4 py-3 rounded font-mono text-sm flex items-center gap-3 transition-colors ${activeTab === 'resume' ? 'bg-dark-accent/10 text-dark-accent border border-dark-accent/30' : 'text-gray-500 hover:text-white'}`}>
+                    <Briefcase size={16} /> Resume
+                </button>
+                <button onClick={() => setActiveTab('blogs')} className={`w-full text-left px-4 py-3 rounded font-mono text-sm flex items-center gap-3 transition-colors ${activeTab === 'blogs' ? 'bg-dark-accent/10 text-dark-accent border border-dark-accent/30' : 'text-gray-500 hover:text-white'}`}>
+                    <FileText size={16} /> Blogs
+                </button>
                 <button onClick={() => setActiveTab('settings')} className={`w-full text-left px-4 py-3 rounded font-mono text-sm flex items-center gap-3 transition-colors ${activeTab === 'settings' ? 'bg-dark-accent/10 text-dark-accent border border-dark-accent/30' : 'text-gray-500 hover:text-white'}`}>
                     <Settings size={16} /> Connection
                 </button>
             </div>
         </aside>
 
-        {/* Main Content Area */}
+        {/* Main Content */}
         <main className="flex-1 p-8 overflow-y-auto relative">
             <div className="max-w-4xl mx-auto">
                 <header className="flex justify-between items-center mb-10">
                     <h1 className="text-3xl font-sketch font-bold">
-                        {activeTab === 'profile' && 'Edit Profile Info'}
-                        {activeTab === 'projects' && (editingProject ? (editingProject.id ? 'Edit Project' : 'New Project') : 'Manage Projects')}
-                        {activeTab === 'settings' && 'Database Connection'}
+                        {activeTab === 'profile' && 'Edit Profile'}
+                        {activeTab === 'projects' && (editingProject ? (editingProject.id ? 'Edit Project' : 'New Project') : 'Projects')}
+                        {activeTab === 'resume' && (editingResume ? (editingResume.id ? 'Edit Entry' : 'New Entry') : 'Resume / History')}
+                        {activeTab === 'blogs' && 'Blog Posts'}
+                        {activeTab === 'settings' && 'Connection'}
                     </h1>
                     
-                    {/* Dynamic Action Buttons */}
+                    {/* Header Buttons */}
                     {activeTab === 'profile' && (
                         <motion.button onClick={handleProfileSave} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-2 bg-dark-accent text-black font-bold font-sketch rounded flex items-center gap-2">
                              {isSaving ? 'SAVING...' : <><Save size={18} /> SAVE CHANGES</>}
                         </motion.button>
                     )}
-                    {activeTab === 'settings' && (
-                         <motion.button onClick={handleConnectionSave} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-2 bg-dark-accent text-black font-bold font-sketch rounded flex items-center gap-2">
-                             <Save size={18} /> CONNECT
-                        </motion.button>
-                    )}
+                    
                     {activeTab === 'projects' && editingProject && (
                         <div className="flex gap-2">
                              <button onClick={() => setEditingProject(null)} className="px-4 py-2 border border-white/20 hover:bg-white/10 rounded">Cancel</button>
                              <motion.button onClick={handleProjectSave} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-2 bg-dark-accent text-black font-bold font-sketch rounded flex items-center gap-2">
                                  {isSaving ? 'SAVING...' : <><Save size={18} /> SAVE PROJECT</>}
+                            </motion.button>
+                        </div>
+                    )}
+
+                    {activeTab === 'resume' && editingResume && (
+                        <div className="flex gap-2">
+                             <button onClick={() => setEditingResume(null)} className="px-4 py-2 border border-white/20 hover:bg-white/10 rounded">Cancel</button>
+                             <motion.button onClick={handleResumeSave} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-2 bg-dark-accent text-black font-bold font-sketch rounded flex items-center gap-2">
+                                 {isSaving ? 'SAVING...' : <><Save size={18} /> SAVE ENTRY</>}
                             </motion.button>
                         </div>
                     )}
@@ -341,11 +453,10 @@ export const AdminDashboard: React.FC = () => {
                                             <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && setAvatarFile(e.target.files[0])} />
                                         </label>
                                     </div>
-                                    <p className="text-[10px] text-gray-500 font-mono">Click to replace</p>
                                 </div>
                                 <div className="flex-1 space-y-6">
                                     <InputField label="Full Name" value={profileForm.name} onChange={(v: string) => setProfileForm(p => ({...p, name: v}))} />
-                                    <InputField label="Headline (Greeting)" value={profileForm.headline} onChange={(v: string) => setProfileForm(p => ({...p, headline: v}))} />
+                                    <InputField label="Headline" value={profileForm.headline} onChange={(v: string) => setProfileForm(p => ({...p, headline: v}))} />
                                 </div>
                              </div>
                              <InputField label="Bio / Sub-headline" value={profileForm.subHeadline} onChange={(v: string) => setProfileForm(p => ({...p, subHeadline: v}))} type="textarea" />
@@ -355,28 +466,26 @@ export const AdminDashboard: React.FC = () => {
 
                     {/* --- PROJECTS TAB --- */}
                     {activeTab === 'projects' && !editingProject && (
-                        <div>
-                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                                <button onClick={() => openProjectEditor()} className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-white/10 rounded-lg hover:border-dark-accent/50 hover:bg-dark-accent/5 transition-colors gap-2 group">
-                                    <Plus size={32} className="text-gray-600 group-hover:text-dark-accent" />
-                                    <span className="text-sm font-mono text-gray-500">Create New Project</span>
-                                </button>
-                                {projects.map(p => (
-                                    <div key={p.id} className="relative group border border-white/10 rounded-lg overflow-hidden bg-black">
-                                        <div className="h-32 bg-gray-900 relative">
-                                            <img src={p.image} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" />
-                                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => openProjectEditor(p)} className="p-2 bg-black/80 hover:bg-blue-600 rounded text-white"><Edit3 size={14} /></button>
-                                                <button onClick={() => handleDeleteProject(p.id)} className="p-2 bg-black/80 hover:bg-red-600 rounded text-white"><Trash2 size={14} /></button>
-                                            </div>
-                                        </div>
-                                        <div className="p-4">
-                                            <h3 className="font-bold font-sketch truncate">{p.title}</h3>
-                                            <p className="text-xs text-gray-500 font-mono truncate">{Array.isArray(p.tags) ? p.tags.join(', ') : p.tags}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                             <button onClick={() => openProjectEditor()} className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-white/10 rounded-lg hover:border-dark-accent/50 hover:bg-dark-accent/5 transition-colors gap-2 group">
+                                <Plus size={32} className="text-gray-600 group-hover:text-dark-accent" />
+                                <span className="text-sm font-mono text-gray-500">Create New Project</span>
+                            </button>
+                            {projects.map(p => (
+                                <div key={p.id} className="relative group border border-white/10 rounded-lg overflow-hidden bg-black">
+                                    <div className="h-32 bg-gray-900 relative">
+                                        <img src={p.image} className="w-full h-full object-cover opacity-60 group-hover:opacity-100" />
+                                        <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => openProjectEditor(p)} className="p-2 bg-black/80 hover:bg-blue-600 rounded text-white"><Edit3 size={14} /></button>
+                                            <button onClick={() => handleDeleteProject(p.id)} className="p-2 bg-black/80 hover:bg-red-600 rounded text-white"><Trash2 size={14} /></button>
                                         </div>
                                     </div>
-                                ))}
-                             </div>
+                                    <div className="p-4">
+                                        <h3 className="font-bold font-sketch truncate">{p.title}</h3>
+                                        <p className="text-xs text-gray-500 font-mono truncate">{Array.isArray(p.tags) ? p.tags.join(', ') : p.tags}</p>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
 
@@ -404,11 +513,91 @@ export const AdminDashboard: React.FC = () => {
                                     )}
                                     <label className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                                         <Upload size={32} className="text-white mb-2" />
-                                        <span className="text-xs font-mono uppercase">Upload New Image</span>
                                         <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && setProjectImageFile(e.target.files[0])} />
                                     </label>
                                 </div>
-                                <p className="text-xs text-gray-500 font-mono">16:9 Aspect Ratio recommended.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* --- RESUME TAB --- */}
+                    {activeTab === 'resume' && !editingResume && (
+                        <div className="space-y-4">
+                             <button onClick={() => openResumeEditor()} className="w-full py-4 border-2 border-dashed border-white/10 rounded-lg hover:border-dark-accent/50 hover:bg-dark-accent/5 transition-colors flex items-center justify-center gap-2 group mb-6">
+                                <Plus size={20} className="text-gray-600 group-hover:text-dark-accent" />
+                                <span className="text-sm font-mono text-gray-500">Add History Entry</span>
+                            </button>
+                            
+                            {resume.map(item => (
+                                <div key={item.id} className="flex items-center justify-between p-4 bg-black border border-white/10 rounded-lg group hover:border-dark-accent/30 transition-colors">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`p-2 rounded ${item.type === 'work' ? 'bg-blue-500/10 text-blue-400' : 'bg-green-500/10 text-green-400'}`}>
+                                            {item.type === 'work' ? <Briefcase size={16} /> : <GraduationCap size={16} />}
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold font-sketch">{item.title}</h4>
+                                            <p className="text-xs text-gray-500 font-mono">{item.company} | {item.period}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => openResumeEditor(item)} className="p-2 hover:bg-white/10 rounded text-blue-400"><Edit3 size={16} /></button>
+                                        <button onClick={() => handleDeleteResume(item.id)} className="p-2 hover:bg-white/10 rounded text-red-400"><Trash2 size={16} /></button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {activeTab === 'resume' && editingResume && (
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-2 gap-4">
+                                <InputField label="Type" value={resumeForm.type} onChange={(v: string) => setResumeForm(p => ({...p, type: v}))} type="select" options={['work', 'education']} />
+                                <InputField label="Period (Year)" value={resumeForm.period} onChange={(v: string) => setResumeForm(p => ({...p, period: v}))} placeholder="e.g. 2020 - 2022" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <InputField label="Title / Degree" value={resumeForm.title} onChange={(v: string) => setResumeForm(p => ({...p, title: v}))} />
+                                <InputField label="Company / University" value={resumeForm.company} onChange={(v: string) => setResumeForm(p => ({...p, company: v}))} />
+                            </div>
+                            <InputField label="Description" value={resumeForm.description} onChange={(v: string) => setResumeForm(p => ({...p, description: v}))} type="textarea" />
+                            <InputField label="Tags (Comma Separated)" value={resumeForm.tags} onChange={(v: string) => setResumeForm(p => ({...p, tags: v}))} placeholder="Python, Leadership, Research" />
+                        </div>
+                    )}
+
+                    {/* --- BLOGS TAB --- */}
+                    {activeTab === 'blogs' && (
+                        <div className="space-y-8">
+                            {/* Medium Sync Section */}
+                            <div className="bg-white/5 border border-white/10 p-6 rounded-lg">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <Rss className="text-orange-400" size={24} />
+                                    <h3 className="font-bold text-lg">Sync from Medium</h3>
+                                </div>
+                                <div className="flex gap-4">
+                                    <div className="flex-1">
+                                        <InputField value={mediumUsername} onChange={setMediumUsername} placeholder="Medium Username (without @)" />
+                                    </div>
+                                    <button onClick={handleMediumSync} disabled={isSyncing} className="px-6 bg-white text-black font-bold rounded flex items-center gap-2 hover:bg-gray-200 disabled:opacity-50">
+                                        {isSyncing ? <RefreshCw className="animate-spin" /> : <RefreshCw />}
+                                        SYNC
+                                    </button>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-2 font-mono">This will fetch your latest public stories and add them to the portfolio.</p>
+                            </div>
+
+                            {/* Blog List */}
+                            <div className="space-y-3">
+                                <h4 className="text-sm font-mono uppercase text-gray-500">Current Posts</h4>
+                                {blogs.map(blog => (
+                                    <div key={blog.id} className="flex items-center justify-between p-4 bg-black border border-white/10 rounded hover:border-dark-accent/30 transition-colors group">
+                                        <div>
+                                            <h4 className="font-medium">{blog.title}</h4>
+                                            <p className="text-xs text-gray-600 font-mono">{blog.date}</p>
+                                        </div>
+                                        <button onClick={() => handleDeleteBlog(blog.id)} className="p-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/10 rounded">
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}
@@ -429,13 +618,16 @@ export const AdminDashboard: React.FC = () => {
                                 <InputField label="Anon / Public Key" value={dbKey} onChange={setDbKey} type="password" placeholder="eyJh..." />
                              </div>
 
-                             {supabase && (
-                                 <div className="pt-8 border-t border-white/10">
+                             <div className="pt-4 flex justify-end gap-4">
+                                 {supabase && (
                                      <button onClick={clearSettings} className="text-red-400 text-sm font-mono flex items-center gap-2 hover:text-red-300 transition-colors">
-                                         <Trash2 size={16} /> Disconnect & Reset to Demo
+                                         <Trash2 size={16} /> DISCONNECT
                                      </button>
-                                 </div>
-                             )}
+                                 )}
+                                 <motion.button onClick={handleConnectionSave} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-2 bg-dark-accent text-black font-bold font-sketch rounded flex items-center gap-2">
+                                     <Save size={18} /> CONNECT
+                                </motion.button>
+                             </div>
                         </div>
                     )}
                 </div>
@@ -444,7 +636,7 @@ export const AdminDashboard: React.FC = () => {
             {/* Success Toast */}
             <AnimatePresence>
                 {showSuccess && (
-                    <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }} className="fixed bottom-10 right-10 bg-green-500/10 border border-green-500 text-green-400 px-6 py-4 rounded-lg flex items-center gap-3 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+                    <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }} className="fixed bottom-10 right-10 bg-green-500/10 border border-green-500 text-green-400 px-6 py-4 rounded-lg flex items-center gap-3 shadow-[0_0_30px_rgba(34,197,94,0.3)] z-50">
                         <CheckCircle size={20} />
                         <span className="font-sketch font-bold">Updated Successfully</span>
                     </motion.div>
