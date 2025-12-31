@@ -1,24 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, LogOut, CheckCircle, Layout, Edit3, Plus, Trash2, Database, Settings, Upload, X, Image as ImageIcon, Briefcase, GraduationCap, FileText, RefreshCw, Rss } from 'lucide-react';
+import { Save, LogOut, CheckCircle, Layout, Edit3, Plus, Trash2, Database, Settings, Upload, X, Image as ImageIcon, Briefcase, GraduationCap, FileText, RefreshCw, Rss, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 import { supabase } from '../lib/supabase';
 
-// --- Helpers defined OUTSIDE component to prevent re-render focus loss ---
+// --- Helpers defined OUTSIDE component ---
 
 const uploadImage = async (file: File, bucket = 'portfolio-images') => {
   if (!supabase) throw new Error("Supabase not configured");
   
+  // Create a unique file name
   const fileExt = file.name.split('.').pop();
   const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
   
+  // Attempt Upload
   const { error: uploadError } = await supabase.storage
     .from(bucket)
     .upload(fileName, file);
 
-  if (uploadError) throw uploadError;
+  if (uploadError) {
+      console.error("Upload Error:", uploadError);
+      throw new Error(`Upload failed: ${uploadError.message}. Make sure bucket '${bucket}' exists and is Public.`);
+  }
 
+  // Get Public URL
   const { data } = supabase.storage
     .from(bucket)
     .getPublicUrl(fileName);
@@ -111,8 +117,9 @@ export const AdminDashboard: React.FC = () => {
   const [dbKey, setDbKey] = useState('');
 
   // 1. Load Data on Mount & Updates
+  // Prevent overwriting form if user is currently editing (simple check)
   useEffect(() => {
-    if (personalInfo) {
+    if (personalInfo && !isSaving) {
         setProfileForm({
             name: personalInfo.name,
             headline: personalInfo.headline,
@@ -121,13 +128,13 @@ export const AdminDashboard: React.FC = () => {
             avatarUrl: personalInfo.avatarUrl
         });
     }
-  }, [personalInfo]);
+  }, [personalInfo, isSaving]);
 
+  // Fetch Profile ID specifically to ensure we update the correct row
   useEffect(() => {
       const fetchProfileId = async () => {
           if (!supabase) return;
           try {
-            // Use maybeSingle to avoid errors if 0 rows or limit(1) if duplicates exist
             const { data } = await supabase.from('profile').select('id').limit(1).maybeSingle();
             if (data) setProfileId(data.id);
           } catch (e) { console.error(e); }
@@ -155,35 +162,68 @@ export const AdminDashboard: React.FC = () => {
   const handleProfileSave = async () => {
     setIsSaving(true);
     try {
-        if (!supabase) { await new Promise(r => setTimeout(r, 1000)); } 
-        else {
-            let finalAvatarUrl = profileForm.avatarUrl;
-            if (avatarFile) {
-                finalAvatarUrl = await uploadImage(avatarFile);
-            }
-            const payload = {
-                name: profileForm.name,
-                headline: profileForm.headline,
-                sub_headline: profileForm.subHeadline,
-                email: profileForm.email,
-                avatar_url: finalAvatarUrl
-            };
+        if (!supabase) { 
+            // Demo Mode Warning
+            alert("You are in DEMO MODE. Changes are not saved to a database.");
+            await new Promise(r => setTimeout(r, 1000)); 
+            setIsSaving(false);
+            return;
+        } 
+        
+        let finalAvatarUrl = profileForm.avatarUrl;
+        
+        // 1. Upload Image if new file selected
+        if (avatarFile) {
+            finalAvatarUrl = await uploadImage(avatarFile);
+        }
 
-            if (profileId) {
-                const { error } = await supabase.from('profile').update(payload).eq('id', profileId);
-                if (error) throw error;
+        // 2. Optimistic Update: Update UI immediately so it doesn't go blank
+        setProfileForm(prev => ({ ...prev, avatarUrl: finalAvatarUrl }));
+        setAvatarFile(null); // Clear file input immediately
+
+        // 3. Prepare Payload
+        const payload = {
+            name: profileForm.name,
+            headline: profileForm.headline,
+            sub_headline: profileForm.subHeadline,
+            email: profileForm.email,
+            avatar_url: finalAvatarUrl
+        };
+
+        // 4. Update Database
+        if (profileId) {
+            const { error } = await supabase.from('profile').update(payload).eq('id', profileId);
+            if (error) throw error;
+        } else {
+            // Fallback: If no ID found, try to insert, or update any existing row
+            // Check count first
+            const { count } = await supabase.from('profile').select('*', { count: 'exact', head: true });
+            
+            if (count && count > 0) {
+                 // There is a row but we missed the ID, find it and update
+                 const { data: existing } = await supabase.from('profile').select('id').limit(1).single();
+                 if (existing) {
+                    await supabase.from('profile').update(payload).eq('id', existing.id);
+                    setProfileId(existing.id);
+                 }
             } else {
+                // Truly empty, insert
                 const { error } = await supabase.from('profile').insert([payload]);
                 if (error) throw error;
-                // Fetch ID for future updates
-                const { data } = await supabase.from('profile').select('id').limit(1).maybeSingle();
+                // Fetch ID for next time
+                const { data } = await supabase.from('profile').select('id').limit(1).single();
                 if (data) setProfileId(data.id);
             }
         }
+
         await refreshData();
-        setAvatarFile(null); // Clear the file input so the UI uses the new URL from context
         showToast();
-    } catch (e: any) { alert("Error: " + e.message); } finally { setIsSaving(false); }
+    } catch (e: any) { 
+        console.error(e);
+        alert("Error: " + e.message); 
+    } finally { 
+        setIsSaving(false); 
+    }
   };
 
   // --- PROJECT HANDLERS ---
@@ -208,28 +248,31 @@ export const AdminDashboard: React.FC = () => {
   const handleProjectSave = async () => {
       setIsSaving(true);
       try {
-          if (!supabase) { await new Promise(r => setTimeout(r, 1000)); }
-          else {
-              let finalImageUrl = projectForm.image;
-              if (projectImageFile) {
-                  finalImageUrl = await uploadImage(projectImageFile);
-              }
-              const payload = {
-                  title: projectForm.title,
-                  description: projectForm.description,
-                  tags: projectForm.tags.split(',').map(t => t.trim()).filter(t => t),
-                  image_url: finalImageUrl,
-                  live_link: projectForm.liveLink,
-                  github_link: projectForm.githubLink
-              };
+          if (!supabase) { 
+               alert("Demo Mode: Changes not saved.");
+               await new Promise(r => setTimeout(r, 1000));
+               setIsSaving(false); return;
+          }
 
-              if (editingProject.id) {
-                  const { error } = await supabase.from('projects').update(payload).eq('id', editingProject.id);
-                  if (error) throw error;
-              } else {
-                  const { error } = await supabase.from('projects').insert([payload]);
-                  if (error) throw error;
-              }
+          let finalImageUrl = projectForm.image;
+          if (projectImageFile) {
+              finalImageUrl = await uploadImage(projectImageFile);
+          }
+          const payload = {
+              title: projectForm.title,
+              description: projectForm.description,
+              tags: projectForm.tags.split(',').map(t => t.trim()).filter(t => t),
+              image_url: finalImageUrl,
+              live_link: projectForm.liveLink,
+              github_link: projectForm.githubLink
+          };
+
+          if (editingProject.id) {
+              const { error } = await supabase.from('projects').update(payload).eq('id', editingProject.id);
+              if (error) throw error;
+          } else {
+              const { error } = await supabase.from('projects').insert([payload]);
+              if (error) throw error;
           }
           await refreshData();
           setEditingProject(null);
@@ -267,24 +310,27 @@ export const AdminDashboard: React.FC = () => {
   const handleResumeSave = async () => {
     setIsSaving(true);
     try {
-        if (!supabase) { await new Promise(r => setTimeout(r, 1000)); }
-        else {
-            const payload = {
-                type: resumeForm.type,
-                title: resumeForm.title,
-                company: resumeForm.company,
-                period: resumeForm.period,
-                description: resumeForm.description,
-                tags: resumeForm.tags.split(',').map(t => t.trim()).filter(t => t)
-            };
+        if (!supabase) { 
+             alert("Demo Mode: Changes not saved.");
+             await new Promise(r => setTimeout(r, 1000));
+             setIsSaving(false); return;
+        }
 
-            if (editingResume.id) {
-                const { error } = await supabase.from('resume').update(payload).eq('id', editingResume.id);
-                if (error) throw error;
-            } else {
-                const { error } = await supabase.from('resume').insert([payload]);
-                if (error) throw error;
-            }
+        const payload = {
+            type: resumeForm.type,
+            title: resumeForm.title,
+            company: resumeForm.company,
+            period: resumeForm.period,
+            description: resumeForm.description,
+            tags: resumeForm.tags.split(',').map(t => t.trim()).filter(t => t)
+        };
+
+        if (editingResume.id) {
+            const { error } = await supabase.from('resume').update(payload).eq('id', editingResume.id);
+            if (error) throw error;
+        } else {
+            const { error } = await supabase.from('resume').insert([payload]);
+            if (error) throw error;
         }
         await refreshData();
         setEditingResume(null);
@@ -312,21 +358,15 @@ export const AdminDashboard: React.FC = () => {
           if (data.status !== 'ok') throw new Error("Could not fetch Medium Feed");
 
           if (!supabase) {
-              alert("Sync simulated (Demo Mode)");
+              alert("Sync simulated (Demo Mode - Not Saved)");
           } else {
-              // Map Medium items to our DB schema
               const posts = data.items.map((item: any) => ({
                   title: item.title,
                   link: item.link,
-                  // Convert "2023-11-15 10:00:00" to "Nov 15, 2023"
                   date: new Date(item.pubDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
               }));
 
-              // Insert loop (basic implementation)
               for (const post of posts) {
-                  // Upsert based on link to avoid duplicates? 
-                  // Supabase simple insert for now, assuming user handles cleanup or we clear table first
-                  // A better way: Check if link exists
                   const { data: existing } = await supabase.from('blogs').select('id').eq('link', post.link).maybeSingle();
                   if (!existing) {
                       await supabase.from('blogs').insert([post]);
@@ -380,6 +420,13 @@ export const AdminDashboard: React.FC = () => {
             <LogOut size={16} /> LOGOUT
         </button>
       </nav>
+
+      {!supabase && (
+          <div className="bg-yellow-900/20 border-b border-yellow-600/30 p-2 text-center text-xs font-mono text-yellow-500 flex items-center justify-center gap-2">
+              <AlertTriangle size={14} />
+              <span>DEMO MODE ACTIVE: Changes will NOT be saved to database. Connect Supabase in Settings.</span>
+          </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
@@ -450,12 +497,19 @@ export const AdminDashboard: React.FC = () => {
                                 <div className="space-y-3">
                                     <label className="text-xs font-mono text-gray-500 uppercase block">Avatar</label>
                                     <div className="relative group w-32 h-32 rounded-full overflow-hidden border-2 border-white/20 bg-black">
-                                        <img src={avatarFile ? URL.createObjectURL(avatarFile) : profileForm.avatarUrl} alt="Preview" className="w-full h-full object-cover" />
+                                        {/* OPTIMIZED: Show avatarFile preview if it exists, otherwise show the URL */}
+                                        <img 
+                                            src={avatarFile ? URL.createObjectURL(avatarFile) : profileForm.avatarUrl} 
+                                            alt="Preview" 
+                                            className="w-full h-full object-cover" 
+                                            onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/150?text=No+Img"; }}
+                                        />
                                         <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                                             <Upload size={24} className="text-white" />
                                             <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && setAvatarFile(e.target.files[0])} />
                                         </label>
                                     </div>
+                                    <p className="text-[10px] text-gray-500 font-mono">Click to replace</p>
                                 </div>
                                 <div className="flex-1 space-y-6">
                                     <InputField label="Full Name" value={profileForm.name} onChange={(v: string) => setProfileForm(p => ({...p, name: v}))} />
