@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { usePortfolio } from '../context/PortfolioContext';
 import { CircularStorm } from './CircularStorm';
 import { ThunderStrike } from './ThunderStrike';
 
-const TypewriterText: React.FC<{ text: string; delay?: number; start: boolean }> = ({ text, delay = 0, start }) => {
+const TypewriterText: React.FC<{ text: string; delay?: number }> = ({ text, delay = 0 }) => {
   const letters = Array.from(text);
 
   return (
     <motion.span
       className="inline-block"
       initial="hidden"
-      animate={start ? "visible" : "hidden"}
+      animate="visible"
       variants={{
         visible: { transition: { staggerChildren: 0.05, delayChildren: delay } },
         hidden: {},
@@ -21,8 +21,8 @@ const TypewriterText: React.FC<{ text: string; delay?: number; start: boolean }>
         <motion.span
           key={index}
           variants={{
-            visible: { opacity: 1, y: 0, x: 0, filter: 'blur(0px)' },
-            hidden: { opacity: 0, y: 20, x: -10, filter: 'blur(10px)' },
+            visible: { opacity: 1, y: 0 },
+            hidden: { opacity: 0, y: 10 },
           }}
           className="inline-block"
         >
@@ -38,30 +38,6 @@ export const Hero: React.FC = () => {
   const [isHoveringAvatar, setIsHoveringAvatar] = useState(false);
   const [showThunder, setShowThunder] = useState(false);
   const [pendingLink, setPendingLink] = useState<string | null>(null);
-  const [introComplete, setIntroComplete] = useState(false);
-
-  // Intro Effect Logic
-  useEffect(() => {
-    const hasSeenIntro = sessionStorage.getItem('portfolio_intro_seen');
-    
-    if (!hasSeenIntro) {
-        // Trigger the Thunder immediately on first load
-        setShowThunder(true);
-        sessionStorage.setItem('portfolio_intro_seen', 'true');
-
-        // Schedule the reveal of the profile "Boom" style
-        // The thunder flash is ~150ms, bolts persist ~1000ms
-        // We reveal right as the flash fades for maximum impact
-        const timer = setTimeout(() => {
-            setIntroComplete(true);
-        }, 500);
-
-        return () => clearTimeout(timer);
-    } else {
-        // If already seen, show content immediately
-        setIntroComplete(true);
-    }
-  }, []);
 
   const handleShockNavigation = (e: React.MouseEvent, href: string) => {
       e.preventDefault();
@@ -90,26 +66,23 @@ export const Hero: React.FC = () => {
         <div className="absolute inset-0 bg-grid-light dark:bg-grid-dark bg-[length:40px_40px] opacity-10 pointer-events-none" />
 
       {/* Main Vertical Stack Container */}
-      {/* We hide the container opacity until introComplete is true to ensure the 'Boom' reveal works */}
-      <div className={`max-w-4xl w-full flex flex-col items-center gap-10 relative z-10 transition-opacity duration-100 ${introComplete ? 'opacity-100' : 'opacity-0'}`}>
+      <div className="max-w-4xl w-full flex flex-col items-center gap-10 relative z-10">
         
         {/* Avatar Section */}
         <motion.div
-          initial={{ opacity: 0, scale: 0, rotate: -180 }}
-          animate={introComplete ? { 
+          initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
+          animate={{ 
               opacity: 1, 
-              scale: isHoveringAvatar ? 1.05 : 1, 
+              scale: isHoveringAvatar ? 1.05 : 1, // Slight scale up on hover
               rotate: 0,
-              // Subtle vibration when storm is active (hover)
+              // Subtle vibration when storm is active
               x: isHoveringAvatar ? [0, -1, 1, -1, 1, 0] : 0,
               y: isHoveringAvatar ? [0, -1, 1, -1, 1, 0] : 0
-          } : {}}
+          }}
           transition={{ 
-              // Elastic bounce for the "Boom" arrival
-              type: "spring", 
-              stiffness: 260, 
-              damping: 20, 
-              delay: 0.1 
+              duration: isHoveringAvatar ? 0.2 : 1, 
+              type: isHoveringAvatar ? "tween" : "spring",
+              repeat: isHoveringAvatar ? Infinity : 0
           }}
           className="relative group w-64 h-64 flex-shrink-0 cursor-pointer"
           onHoverStart={() => setIsHoveringAvatar(true)}
@@ -156,14 +129,14 @@ export const Hero: React.FC = () => {
         {/* Text Section */}
         <div className="flex flex-col items-center text-center max-w-2xl">
           <h1 className="text-4xl md:text-6xl font-sketch font-bold mb-6 text-light-text dark:text-dark-text">
-            <TypewriterText text={personalInfo.headline} delay={0.8} start={introComplete} />
+            <TypewriterText text={personalInfo.headline} delay={0.5} />
           </h1>
           
           <div className="text-lg md:text-xl font-sans text-light-text/80 dark:text-dark-text/80 leading-relaxed font-medium">
             <motion.p
-              initial={{ opacity: 0, y: 10, filter: "blur(10px)" }}
-              animate={introComplete ? { opacity: 1, y: 0, filter: "blur(0px)" } : {}}
-              transition={{ delay: 2.5, duration: 0.8 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.8, duration: 0.8 }}
             >
               {personalInfo.subHeadline}
             </motion.p>
@@ -171,8 +144,8 @@ export const Hero: React.FC = () => {
           
           <motion.div
             initial={{ opacity: 0, y: 20 }}
-            animate={introComplete ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 3, duration: 0.5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 2.2, duration: 0.5 }}
             className="mt-10 flex gap-6 justify-center"
           >
              <a 
@@ -196,9 +169,8 @@ export const Hero: React.FC = () => {
       {/* Scroll indicator */}
       <motion.div 
         className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        initial={{ opacity: 0 }}
-        animate={introComplete ? { opacity: 1, y: [0, 10, 0] } : {}}
-        transition={{ opacity: { delay: 3.5 }, y: { repeat: Infinity, duration: 2 } }}
+        animate={{ y: [0, 10, 0] }}
+        transition={{ repeat: Infinity, duration: 2 }}
       >
         <div className="w-6 h-10 border-2 border-light-text/30 dark:border-dark-text/30 rounded-full flex justify-center pt-2">
             <div className="w-1 h-2 bg-light-accent dark:bg-dark-accent rounded-full" />

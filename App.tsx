@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
@@ -12,6 +12,7 @@ import { Resume } from './components/Resume';
 import { Login } from './pages/Login';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { PortfolioProvider } from './context/PortfolioContext';
+import { ThorIntro } from './components/ThorIntro';
 
 const MainPortfolio: React.FC = () => {
   return (
@@ -32,8 +33,18 @@ const MainPortfolio: React.FC = () => {
 // Wrapper to hide cursor/scroll progress on Admin routes if desired
 const AppContent: React.FC = () => {
     const location = useLocation();
-    // In HashRouter, pathname might be '/' or '/login' correctly.
     const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname === '/login';
+    const [showIntro, setShowIntro] = useState(false);
+
+    // Initial Intro Logic
+    useEffect(() => {
+        // Check session storage to only show Thor Intro once per session
+        const hasSeenIntro = sessionStorage.getItem('thor_intro_seen');
+        if (!hasSeenIntro && !isAdminRoute) {
+            setShowIntro(true);
+            sessionStorage.setItem('thor_intro_seen', 'true');
+        }
+    }, [isAdminRoute]);
 
     // Force system cursor on Admin/Login pages
     useEffect(() => {
@@ -54,6 +65,9 @@ const AppContent: React.FC = () => {
         <main className="relative min-h-screen w-full overflow-x-hidden selection:bg-light-accent selection:text-white dark:selection:bg-dark-accent dark:selection:text-black">
           {!isAdminRoute && <CustomCursor />}
           {!isAdminRoute && <ScrollProgress />}
+
+          {/* The God Landing */}
+          {showIntro && <ThorIntro onComplete={() => setShowIntro(false)} />}
           
           <Routes>
             <Route path="/" element={<MainPortfolio />} />
