@@ -1,9 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Safe environment variable retrieval that checks:
-// 1. LocalStorage (for runtime config in the browser)
-// 2. Vite import.meta.env (if available)
-// 3. process.env (for Node/Build environments)
+// Safe environment variable retrieval
 const getEnv = (key: string) => {
   // 1. Check localStorage first for runtime overrides (Priority)
   try {
@@ -35,6 +32,18 @@ const getEnv = (key: string) => {
 const supabaseUrl = getEnv('REACT_APP_SUPABASE_URL');
 const supabaseKey = getEnv('REACT_APP_SUPABASE_ANON_KEY');
 
-export const supabase = (supabaseUrl && supabaseKey) 
-  ? createClient(supabaseUrl, supabaseKey) 
-  : null;
+const createSafeClient = () => {
+  if (!supabaseUrl || !supabaseKey) return null;
+
+  try {
+    // Validate URL format before attempting to create client
+    // invalid URLs cause createClient to throw immediately, crashing the app
+    new URL(supabaseUrl); 
+    return createClient(supabaseUrl, supabaseKey);
+  } catch (error) {
+    console.error("Invalid Supabase URL provided. Falling back to Demo Mode.", error);
+    return null;
+  }
+}
+
+export const supabase = createSafeClient();
