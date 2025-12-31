@@ -5,7 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 import { supabase } from '../lib/supabase';
 
-// Helper to upload images
+// Helper to upload images to Supabase Storage
+// Ensures unique filenames using Date.now()
 const uploadImage = async (file: File, bucket = 'portfolio-images') => {
   if (!supabase) throw new Error("Supabase not configured");
   
@@ -43,7 +44,8 @@ export const AdminDashboard: React.FC = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   // --- Projects State ---
-  const [editingProject, setEditingProject] = useState<any | null>(null); // null = list mode, object = edit mode (empty obj = create)
+  // null = list mode, {} = create mode, { ... } = edit mode
+  const [editingProject, setEditingProject] = useState<any | null>(null); 
   const [projectForm, setProjectForm] = useState({
       title: '',
       description: '',
@@ -58,7 +60,7 @@ export const AdminDashboard: React.FC = () => {
   const [dbUrl, setDbUrl] = useState('');
   const [dbKey, setDbKey] = useState('');
 
-  // Init Data from Context
+  // Load initial data from Context
   useEffect(() => {
     if (personalInfo) {
         setProfileForm({
@@ -97,11 +99,12 @@ export const AdminDashboard: React.FC = () => {
         } else {
             let finalAvatarUrl = profileForm.avatarUrl;
             
+            // Upload new avatar if selected
             if (avatarFile) {
                 finalAvatarUrl = await uploadImage(avatarFile);
             }
 
-            // Upsert profile. Assuming ID 1 for single profile.
+            // Update or Insert profile (Assuming ID 1 is the main user)
             const { error } = await supabase.from('profile').upsert({
                 id: 1,
                 name: profileForm.name,
@@ -110,9 +113,11 @@ export const AdminDashboard: React.FC = () => {
                 email: profileForm.email,
                 avatar_url: finalAvatarUrl
             });
+            
             if (error) throw error;
         }
         
+        // Refresh context to show changes immediately
         await refreshData();
         showToast();
     } catch (e: any) {
@@ -150,6 +155,8 @@ export const AdminDashboard: React.FC = () => {
           const { error } = await supabase.from('projects').delete().eq('id', id);
           if (error) { alert(error.message); return; }
           await refreshData();
+      } else {
+          alert("Cannot delete in Demo Mode");
       }
   };
 
@@ -160,6 +167,8 @@ export const AdminDashboard: React.FC = () => {
               await new Promise(r => setTimeout(r, 1000));
           } else {
               let finalImageUrl = projectForm.image;
+              
+              // Upload new project image if selected
               if (projectImageFile) {
                   finalImageUrl = await uploadImage(projectImageFile);
               }
@@ -167,6 +176,7 @@ export const AdminDashboard: React.FC = () => {
               const payload = {
                   title: projectForm.title,
                   description: projectForm.description,
+                  // Split tags string into array for Postgres
                   tags: projectForm.tags.split(',').map(t => t.trim()).filter(t => t),
                   image_url: finalImageUrl,
                   live_link: projectForm.liveLink,
@@ -174,17 +184,17 @@ export const AdminDashboard: React.FC = () => {
               };
 
               if (editingProject.id) {
-                  // Update
+                  // UPDATE existing
                   const { error } = await supabase.from('projects').update(payload).eq('id', editingProject.id);
                   if (error) throw error;
               } else {
-                  // Insert
+                  // INSERT new
                   const { error } = await supabase.from('projects').insert([payload]);
                   if (error) throw error;
               }
           }
           await refreshData();
-          setEditingProject(null); // Close editor
+          setEditingProject(null); // Close editor and return to list
           showToast();
       } catch (e: any) {
           alert("Error saving project: " + e.message);
@@ -214,13 +224,13 @@ export const AdminDashboard: React.FC = () => {
         {type === 'textarea' ? (
             <textarea 
                 value={value} onChange={e => onChange(e.target.value)} rows={4}
-                className="w-full bg-black border border-white/10 focus:border-dark-accent p-3 text-white outline-none rounded font-sans"
+                className="w-full bg-black border border-white/10 focus:border-dark-accent p-3 text-white outline-none rounded font-sans focus:ring-1 focus:ring-dark-accent transition-all"
                 placeholder={placeholder}
             />
         ) : (
             <input 
                 type={type} value={value} onChange={e => onChange(e.target.value)}
-                className="w-full bg-black border border-white/10 focus:border-dark-accent p-3 text-white outline-none rounded font-sans"
+                className="w-full bg-black border border-white/10 focus:border-dark-accent p-3 text-white outline-none rounded font-sans focus:ring-1 focus:ring-dark-accent transition-all"
                 placeholder={placeholder}
             />
         )}
@@ -273,7 +283,7 @@ export const AdminDashboard: React.FC = () => {
                         {activeTab === 'settings' && 'Database Connection'}
                     </h1>
                     
-                    {/* Dynamic Action Button */}
+                    {/* Dynamic Action Buttons */}
                     {activeTab === 'profile' && (
                         <motion.button onClick={handleProfileSave} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-2 bg-dark-accent text-black font-bold font-sketch rounded flex items-center gap-2">
                              {isSaving ? 'SAVING...' : <><Save size={18} /> SAVE CHANGES</>}
@@ -340,7 +350,7 @@ export const AdminDashboard: React.FC = () => {
                                         </div>
                                         <div className="p-4">
                                             <h3 className="font-bold font-sketch truncate">{p.title}</h3>
-                                            <p className="text-xs text-gray-500 font-mono truncate">{p.tags.join(', ')}</p>
+                                            <p className="text-xs text-gray-500 font-mono truncate">{Array.isArray(p.tags) ? p.tags.join(', ') : p.tags}</p>
                                         </div>
                                     </div>
                                 ))}

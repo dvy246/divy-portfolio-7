@@ -16,6 +16,7 @@ interface PortfolioData {
 const PortfolioContext = createContext<PortfolioData | undefined>(undefined);
 
 export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // Initial state uses the static data.ts as the default fallback
   const [data, setData] = useState({
     personalInfo: PERSONAL_INFO,
     skills: SKILL_CATEGORIES,
@@ -30,45 +31,47 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     
     // If Supabase is not configured, we just use the static data immediately
     if (!supabase) {
-      console.info("Info: Supabase keys not found. App running in Static Demo Mode. Configure keys in Admin Dashboard to connect to live DB.");
+      console.info("Supabase not connected. Using static fallback data.");
       setIsLoading(false);
       return;
     }
 
     try {
-      console.log("Connecting to Supabase...");
-      
+      // Fetch Profile and Projects in parallel
       const [profileResult, projectsResult] = await Promise.allSettled([
         supabase.from('profile').select('*').single(),
         supabase.from('projects').select('*').order('id', { ascending: false }),
       ]);
 
       // 1. Handle Profile Data
+      // If we get a valid row, we override the static PERSONAL_INFO
       if (profileResult.status === 'fulfilled' && profileResult.value.data) {
         const dbProfile = profileResult.value.data;
         setData(prev => ({
           ...prev,
           personalInfo: {
-            ...prev.personalInfo, // Keep defaults for missing fields
+            ...prev.personalInfo, // Keep existing defaults for fields not in DB
             name: dbProfile.name || prev.personalInfo.name,
             title: dbProfile.title || prev.personalInfo.title,
             headline: dbProfile.headline || prev.personalInfo.headline,
             subHeadline: dbProfile.sub_headline || prev.personalInfo.subHeadline,
             avatarUrl: dbProfile.avatar_url || prev.personalInfo.avatarUrl,
             email: dbProfile.email || prev.personalInfo.email,
-            // Assuming dbProfile.socials is a JSONB object, map it if exists
+            // Assuming dbProfile.socials is stored as JSONB
             socials: dbProfile.socials || prev.personalInfo.socials
           }
         }));
       }
 
       // 2. Handle Projects Data
+      // If we get rows, we override the static PROJECTS array
       if (projectsResult.status === 'fulfilled' && projectsResult.value.data && projectsResult.value.data.length > 0) {
         const dbProjects = projectsResult.value.data.map((p: any) => ({
             id: p.id,
             title: p.title,
             description: p.description,
-            tags: p.tags || [], // Assuming tags is an array in Postgres
+            // Postgres Arrays come back as arrays, but handle null just in case
+            tags: p.tags || [], 
             image: p.image_url || "https://picsum.photos/600/400?grayscale",
             liveLink: p.live_link || "#",
             githubLink: p.github_link || "#"
@@ -79,11 +82,9 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             projects: dbProjects
         }));
       }
-      
-      console.log("Supabase data sync complete.");
 
     } catch (error) {
-      console.error("Error fetching data, falling back to static:", error);
+      console.error("Unexpected error fetching data (using fallback):", error);
     } finally {
       setIsLoading(false);
     }
