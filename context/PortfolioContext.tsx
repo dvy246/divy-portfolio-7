@@ -38,13 +38,15 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     try {
       // Fetch Profile and Projects in parallel
-      const [profileResult, projectsResult] = await Promise.allSettled([
-        supabase.from('profile').select('*').single(),
+      // We use maybeSingle() to prevent errors if 0 rows exist, and limit(1) to prevent errors if >1 row exist.
+      const [profileResult, projectsResult, resumeResult, blogsResult] = await Promise.allSettled([
+        supabase.from('profile').select('*').limit(1).maybeSingle(),
         supabase.from('projects').select('*').order('id', { ascending: false }),
+        supabase.from('resume').select('*').order('period', { ascending: false }),
+        supabase.from('blogs').select('*').order('date', { ascending: false }),
       ]);
 
       // 1. Handle Profile Data
-      // If we get a valid row, we override the static PERSONAL_INFO
       if (profileResult.status === 'fulfilled' && profileResult.value.data) {
         const dbProfile = profileResult.value.data;
         setData(prev => ({
@@ -57,30 +59,49 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             subHeadline: dbProfile.sub_headline || prev.personalInfo.subHeadline,
             avatarUrl: dbProfile.avatar_url || prev.personalInfo.avatarUrl,
             email: dbProfile.email || prev.personalInfo.email,
-            // Assuming dbProfile.socials is stored as JSONB
             socials: dbProfile.socials || prev.personalInfo.socials
           }
         }));
       }
 
       // 2. Handle Projects Data
-      // If we get rows, we override the static PROJECTS array
-      if (projectsResult.status === 'fulfilled' && projectsResult.value.data && projectsResult.value.data.length > 0) {
+      if (projectsResult.status === 'fulfilled' && projectsResult.value.data) {
         const dbProjects = projectsResult.value.data.map((p: any) => ({
             id: p.id,
             title: p.title,
             description: p.description,
-            // Postgres Arrays come back as arrays, but handle null just in case
             tags: p.tags || [], 
             image: p.image_url || "https://picsum.photos/600/400?grayscale",
             liveLink: p.live_link || "#",
             githubLink: p.github_link || "#"
         }));
         
-        setData(prev => ({
-            ...prev,
-            projects: dbProjects
-        }));
+        setData(prev => ({ ...prev, projects: dbProjects.length > 0 ? dbProjects : prev.projects }));
+      }
+
+      // 3. Handle Resume Data
+      if (resumeResult.status === 'fulfilled' && resumeResult.value.data) {
+          const dbResume = resumeResult.value.data.map((r: any) => ({
+              id: r.id,
+              type: r.type,
+              title: r.title,
+              company: r.company,
+              period: r.period,
+              description: r.description,
+              tags: r.tags || []
+          }));
+          setData(prev => ({ ...prev, resume: dbResume.length > 0 ? dbResume : prev.resume }));
+      }
+
+      // 4. Handle Blogs Data
+      if (blogsResult.status === 'fulfilled' && blogsResult.value.data) {
+          const dbBlogs = blogsResult.value.data.map((b: any) => ({
+              id: b.id,
+              title: b.title,
+              date: b.date,
+              link: b.link
+          }));
+          setData(prev => ({ ...prev, blogs: dbBlogs.length > 0 ? dbBlogs : prev.blogs }));
       }
 
     } catch (error) {

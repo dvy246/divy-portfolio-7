@@ -127,7 +127,8 @@ export const AdminDashboard: React.FC = () => {
       const fetchProfileId = async () => {
           if (!supabase) return;
           try {
-            const { data } = await supabase.from('profile').select('id').limit(1).single();
+            // Use maybeSingle to avoid errors if 0 rows or limit(1) if duplicates exist
+            const { data } = await supabase.from('profile').select('id').limit(1).maybeSingle();
             if (data) setProfileId(data.id);
           } catch (e) { console.error(e); }
       };
@@ -174,11 +175,13 @@ export const AdminDashboard: React.FC = () => {
             } else {
                 const { error } = await supabase.from('profile').insert([payload]);
                 if (error) throw error;
-                const { data } = await supabase.from('profile').select('id').limit(1).single();
+                // Fetch ID for future updates
+                const { data } = await supabase.from('profile').select('id').limit(1).maybeSingle();
                 if (data) setProfileId(data.id);
             }
         }
         await refreshData();
+        setAvatarFile(null); // Clear the file input so the UI uses the new URL from context
         showToast();
     } catch (e: any) { alert("Error: " + e.message); } finally { setIsSaving(false); }
   };
@@ -324,7 +327,7 @@ export const AdminDashboard: React.FC = () => {
                   // Upsert based on link to avoid duplicates? 
                   // Supabase simple insert for now, assuming user handles cleanup or we clear table first
                   // A better way: Check if link exists
-                  const { data: existing } = await supabase.from('blogs').select('id').eq('link', post.link).single();
+                  const { data: existing } = await supabase.from('blogs').select('id').eq('link', post.link).maybeSingle();
                   if (!existing) {
                       await supabase.from('blogs').insert([post]);
                   }
