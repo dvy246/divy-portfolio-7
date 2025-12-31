@@ -3,14 +3,34 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Cpu, ChevronRight } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
 import { ElectricOverlay } from './ElectricOverlay';
+import { ThunderStrike } from './ThunderStrike';
 
 export const Skills: React.FC = () => {
   const { skills } = usePortfolio();
   const [selectedCategory, setSelectedCategory] = useState<typeof skills[0] | null>(null);
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [thunderActive, setThunderActive] = useState(false);
+
+  const handleCardClick = (category: typeof skills[0]) => {
+      // 1. Trigger Thunder
+      setThunderActive(true);
+
+      // 2. Open Modal after shock delay
+      setTimeout(() => {
+          setSelectedCategory(category);
+      }, 500);
+
+      // 3. Reset Thunder
+      setTimeout(() => {
+          setThunderActive(false);
+      }, 1200);
+  };
 
   return (
     <section id="skills" className="py-24 px-4 bg-light-bg dark:bg-dark-bg relative overflow-hidden">
+        {/* Thunder Effect */}
+        <ThunderStrike isActive={thunderActive} onComplete={() => {}} />
+
         {/* Background Decorative Elements */}
         <div className="absolute top-0 right-0 w-64 h-64 border-l border-b border-light-text/5 dark:border-dark-text/5 rounded-bl-[100px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-40 h-40 border-r border-t border-light-text/5 dark:border-dark-text/5 rounded-tr-[50px] pointer-events-none" />
@@ -36,7 +56,7 @@ export const Skills: React.FC = () => {
             <motion.div
               key={category.id}
               layoutId={`card-${category.id}`}
-              onClick={() => setSelectedCategory(category)}
+              onClick={() => handleCardClick(category)}
               onHoverStart={() => setHoveredCard(category.id)}
               onHoverEnd={() => setHoveredCard(null)}
               initial={{ opacity: 0, y: 30 }}
@@ -61,7 +81,15 @@ export const Skills: React.FC = () => {
               <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-light-accent dark:border-dark-accent opacity-50" />
 
               <div className="flex items-center justify-between mb-6 relative z-10">
-                 <motion.div layoutId={`icon-${category.id}`} className="p-3 bg-light-accent/10 dark:bg-dark-accent/10 rounded-lg">
+                 {/* Intense Glow on Icon when Hovered */}
+                 <motion.div 
+                    layoutId={`icon-${category.id}`} 
+                    className="p-3 bg-light-accent/10 dark:bg-dark-accent/10 rounded-lg"
+                    animate={{
+                        boxShadow: hoveredCard === category.id ? "0 0 20px rgba(41, 216, 255, 0.6)" : "0 0 0px rgba(0,0,0,0)",
+                        scale: hoveredCard === category.id ? 1.1 : 1
+                    }}
+                 >
                     <category.icon size={32} className="text-light-accent dark:text-dark-accent" strokeWidth={1.5} />
                  </motion.div>
                  <ChevronRight className="text-light-text/20 dark:text-dark-text/20 group-hover:text-light-accent dark:group-hover:text-dark-accent transition-colors" />
