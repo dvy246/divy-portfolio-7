@@ -4,7 +4,7 @@ export const PERSONAL_INFO = {
   name: "Divy Yadav",
   title: "Data Science & AI Enthusiast",
   headline: "Hey, I'm Divy.",
-  subHeadline: "I build data science, GenAI, and agentic AI systems.",
+  subHeadline: "I build Data science, GenAI, and agentic AI systems.",
   email: "hello@divyyadav.com",
   socials: {
     github: "https://github.com",
