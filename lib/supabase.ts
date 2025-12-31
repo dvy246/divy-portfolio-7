@@ -1,32 +1,39 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Safe environment variable retrieval
+// Safe environment variable retrieval with aggressive trimming
 const getEnv = (key: string) => {
+  let value = undefined;
+
   // 1. Check localStorage first for runtime overrides (Priority)
   try {
     if (typeof localStorage !== 'undefined') {
       const localVal = localStorage.getItem(key);
-      if (localVal) return localVal;
+      if (localVal) value = localVal;
     }
   } catch (e) {}
 
-  // 2. Try Vite's import.meta.env
-  try {
-    // @ts-ignore
-    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+  // 2. Try Vite's import.meta.env if not found in local storage
+  if (!value) {
+    try {
       // @ts-ignore
-      return import.meta.env[key];
-    }
-  } catch (e) {}
+      if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+        // @ts-ignore
+        value = import.meta.env[key];
+      }
+    } catch (e) {}
+  }
 
   // 3. Try process.env
-  try {
-    if (typeof process !== 'undefined' && process.env) {
-      return process.env[key];
-    }
-  } catch (e) {}
+  if (!value) {
+    try {
+      if (typeof process !== 'undefined' && process.env) {
+        value = process.env[key];
+      }
+    } catch (e) {}
+  }
 
-  return undefined;
+  // CRITICAL FIX: Trim whitespace which causes new URL() to fail
+  return value ? value.trim() : undefined;
 };
 
 const supabaseUrl = getEnv('REACT_APP_SUPABASE_URL');
@@ -38,7 +45,13 @@ const createSafeClient = () => {
   try {
     // Validate URL format before attempting to create client
     // invalid URLs cause createClient to throw immediately, crashing the app
-    new URL(supabaseUrl); 
+    const urlObj = new URL(supabaseUrl); 
+    // Ensure it's actually an HTTP/HTTPS url
+    if (!urlObj.protocol.startsWith('http')) {
+        console.warn("Supabase URL must start with http/https");
+        return null;
+    }
+    
     return createClient(supabaseUrl, supabaseKey);
   } catch (error) {
     console.error("Invalid Supabase URL provided. Falling back to Demo Mode.", error);

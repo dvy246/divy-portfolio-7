@@ -11,8 +11,8 @@ export const Navbar: React.FC = () => {
       transition={{ duration: 0.8, ease: "easeOut" }}
       className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex justify-between items-center backdrop-blur-md bg-light-bg/80 dark:bg-dark-bg/80 border-b border-black/5 dark:border-white/5"
     >
-      <a href="#" className="text-2xl font-sketch font-bold text-light-accent dark:text-dark-accent">
-        TheBlueprint
+      <a href="#" className="text-xl md:text-2xl font-sketch font-bold text-light-accent dark:text-dark-accent truncate">
+        AI & Data Science Enthusiast
       </a>
 
       <div className="hidden md:flex items-center gap-8 font-sketch text-lg">

@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Cpu, ChevronRight } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
+import { ElectricOverlay } from './ElectricOverlay';
 
 export const Skills: React.FC = () => {
   const { skills } = usePortfolio();
   const [selectedCategory, setSelectedCategory] = useState<typeof skills[0] | null>(null);
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
 
   return (
     <section id="skills" className="py-24 px-4 bg-light-bg dark:bg-dark-bg relative overflow-hidden">
@@ -35,6 +37,8 @@ export const Skills: React.FC = () => {
               key={category.id}
               layoutId={`card-${category.id}`}
               onClick={() => setSelectedCategory(category)}
+              onHoverStart={() => setHoveredCard(category.id)}
+              onHoverEnd={() => setHoveredCard(null)}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -49,26 +53,29 @@ export const Skills: React.FC = () => {
                 borderRadius: "2px 20px 2px 20px"
               }}
             >
+              {/* Lightning Effect on Hover */}
+              {hoveredCard === category.id && <ElectricOverlay />}
+
               {/* Corner Accents */}
               <div className="absolute top-0 left-0 w-3 h-3 border-l-2 border-t-2 border-light-accent dark:border-dark-accent opacity-50" />
               <div className="absolute bottom-0 right-0 w-3 h-3 border-r-2 border-b-2 border-light-accent dark:border-dark-accent opacity-50" />
 
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-6 relative z-10">
                  <motion.div layoutId={`icon-${category.id}`} className="p-3 bg-light-accent/10 dark:bg-dark-accent/10 rounded-lg">
                     <category.icon size={32} className="text-light-accent dark:text-dark-accent" strokeWidth={1.5} />
                  </motion.div>
                  <ChevronRight className="text-light-text/20 dark:text-dark-text/20 group-hover:text-light-accent dark:group-hover:text-dark-accent transition-colors" />
               </div>
 
-              <motion.h3 layoutId={`title-${category.id}`} className="text-2xl font-sketch font-bold mb-2">
+              <motion.h3 layoutId={`title-${category.id}`} className="text-2xl font-sketch font-bold mb-2 relative z-10">
                 {category.name}
               </motion.h3>
               
-              <motion.p layoutId={`desc-${category.id}`} className="text-sm font-sans text-light-text/60 dark:text-dark-text/60">
+              <motion.p layoutId={`desc-${category.id}`} className="text-sm font-sans text-light-text/60 dark:text-dark-text/60 relative z-10">
                 {category.description}
               </motion.p>
               
-              <div className="mt-4 pt-4 border-t border-dashed border-light-text/10 dark:border-dark-text/10 flex items-center gap-2 text-xs font-mono text-light-text/40 dark:text-dark-text/40">
+              <div className="mt-4 pt-4 border-t border-dashed border-light-text/10 dark:border-dark-text/10 flex items-center gap-2 text-xs font-mono text-light-text/40 dark:text-dark-text/40 relative z-10">
                 <Cpu size={12} />
                 <span>{category.techStack.length} Technologies</span>
               </div>

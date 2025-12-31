@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ExternalLink, Github } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
+import { ElectricOverlay } from './ElectricOverlay';
 
 export const Projects: React.FC = () => {
   const { projects } = usePortfolio();
+  const [hoveredProject, setHoveredProject] = useState<number | null>(null);
 
   return (
     <section id="projects" className="py-20 px-4">
@@ -22,6 +24,8 @@ export const Projects: React.FC = () => {
           {projects.map((project, index) => (
             <motion.div
               key={project.id}
+              onHoverStart={() => setHoveredProject(project.id)}
+              onHoverEnd={() => setHoveredProject(null)}
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-100px" }}
@@ -32,8 +36,11 @@ export const Projects: React.FC = () => {
                  borderRadius: "2px 20px 2px 25px / 25px 2px 20px 2px"
               }}
             >
+              {/* Lightning Effect */}
+              {hoveredProject === project.id && <ElectricOverlay />}
+
               {/* Image Container */}
-              <div className="relative h-64 overflow-hidden border-b-2 border-dashed border-light-text/10 dark:border-dark-text/10">
+              <div className="relative h-64 overflow-hidden border-b-2 border-dashed border-light-text/10 dark:border-dark-text/10 z-10">
                 <img 
                     src={project.image} 
                     alt={project.title} 
@@ -43,7 +50,7 @@ export const Projects: React.FC = () => {
               </div>
 
               {/* Content */}
-              <div className="p-6 flex flex-col flex-grow">
+              <div className="p-6 flex flex-col flex-grow relative z-10 bg-inherit">
                 <div className="flex justify-between items-start mb-4">
                     <h3 className="text-2xl font-sketch font-bold">{project.title}</h3>
                 </div>

@@ -58,6 +58,32 @@ export const CustomCursor: React.FC = () => {
             
             {/* Outer Ring */}
             <div className={`w-4 h-4 border border-light-accent dark:border-dark-accent rounded-full absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${isHovering ? 'opacity-0' : 'opacity-100'}`} />
+
+            {/* Electric Arcs (Only visible on hover) */}
+            {isHovering && (
+                <svg className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 pointer-events-none overflow-visible">
+                    <motion.path 
+                        d="M6,24 Q12,20 18,24 T30,24 T42,24" 
+                        stroke="currentColor" 
+                        fill="none" 
+                        className="text-light-accent dark:text-dark-accent"
+                        strokeWidth="0.5"
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: 1, opacity: [0, 1, 0], pathOffset: [0, 1] }}
+                        transition={{ duration: 0.5, repeat: Infinity, ease: "linear" }}
+                    />
+                    <motion.path 
+                        d="M24,6 Q20,12 24,18 T24,30 T24,42" 
+                        stroke="currentColor" 
+                        fill="none" 
+                        className="text-light-accent dark:text-dark-accent"
+                        strokeWidth="0.5"
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: 1, opacity: [0, 1, 0], pathOffset: [0, 1] }}
+                        transition={{ duration: 0.4, repeat: Infinity, ease: "linear", delay: 0.1 }}
+                    />
+                </svg>
+            )}
         </motion.div>
       </motion.div>
       

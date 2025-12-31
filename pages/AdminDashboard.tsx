@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, LogOut, CheckCircle, Layout, Edit3, Plus, Trash2, Database, Settings, Upload, X, Image as ImageIcon, Briefcase, GraduationCap, FileText, RefreshCw, Rss, AlertTriangle } from 'lucide-react';
+import { Save, LogOut, CheckCircle, Layout, Edit3, Plus, Trash2, Database, Settings, Upload, X, Image as ImageIcon, Briefcase, GraduationCap, FileText, RefreshCw, Rss, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 import { supabase } from '../lib/supabase';
@@ -73,6 +73,7 @@ export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'projects' | 'resume' | 'blogs' | 'settings'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true); // Default true to avoid flash, check in effect
 
   // --- Profile State ---
   const [profileId, setProfileId] = useState<number | null>(null);
@@ -115,6 +116,20 @@ export const AdminDashboard: React.FC = () => {
   // --- Settings State ---
   const [dbUrl, setDbUrl] = useState('');
   const [dbKey, setDbKey] = useState('');
+
+  // AUTH CHECK: Ensure user is logged in if Supabase is connected
+  useEffect(() => {
+    const checkSession = async () => {
+      if (!supabase) return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setIsAuthenticated(false);
+      } else {
+        setIsAuthenticated(true);
+      }
+    };
+    checkSession();
+  }, []);
 
   // 1. Load Data on Mount & Updates
   // Prevent overwriting form if user is currently editing (simple check)
@@ -163,12 +178,13 @@ export const AdminDashboard: React.FC = () => {
     setIsSaving(true);
     try {
         if (!supabase) { 
-            // Demo Mode Warning
-            alert("You are in DEMO MODE. Changes are not saved to a database.");
-            await new Promise(r => setTimeout(r, 1000)); 
-            setIsSaving(false);
-            return;
+            alert("Demo Mode: Changes not saved.");
+            setIsSaving(false); return;
         } 
+        if (!isAuthenticated) {
+            alert("Security Error: You are not logged in to Supabase. Please Logout and Log in again with your email/password.");
+            setIsSaving(false); return;
+        }
         
         let finalAvatarUrl = profileForm.avatarUrl;
         
@@ -250,8 +266,11 @@ export const AdminDashboard: React.FC = () => {
       try {
           if (!supabase) { 
                alert("Demo Mode: Changes not saved.");
-               await new Promise(r => setTimeout(r, 1000));
                setIsSaving(false); return;
+          }
+          if (!isAuthenticated) {
+            alert("Please log in to save changes.");
+            setIsSaving(false); return;
           }
 
           let finalImageUrl = projectForm.image;
@@ -312,8 +331,11 @@ export const AdminDashboard: React.FC = () => {
     try {
         if (!supabase) { 
              alert("Demo Mode: Changes not saved.");
-             await new Promise(r => setTimeout(r, 1000));
              setIsSaving(false); return;
+        }
+        if (!isAuthenticated) {
+            alert("Please log in to save changes.");
+            setIsSaving(false); return;
         }
 
         const payload = {
@@ -393,8 +415,29 @@ export const AdminDashboard: React.FC = () => {
 
   // --- SETTINGS HANDLERS ---
   const handleConnectionSave = async () => {
-    localStorage.setItem('REACT_APP_SUPABASE_URL', dbUrl);
-    localStorage.setItem('REACT_APP_SUPABASE_ANON_KEY', dbKey);
+    // 1. Trim Inputs
+    const cleanUrl = dbUrl.trim();
+    const cleanKey = dbKey.trim();
+
+    // 2. Validate URL
+    if (!cleanUrl) {
+        alert("Please enter a Project URL.");
+        return;
+    }
+    if (!cleanUrl.startsWith('https://')) {
+        alert("Invalid URL. It must start with 'https://'. Please copy the full URL from your Supabase dashboard.");
+        return;
+    }
+    if (!cleanKey) {
+        alert("Please enter the Anon/Public Key.");
+        return;
+    }
+
+    // 3. Save to Storage
+    localStorage.setItem('REACT_APP_SUPABASE_URL', cleanUrl);
+    localStorage.setItem('REACT_APP_SUPABASE_ANON_KEY', cleanKey);
+    
+    // 4. Reload to initialize Supabase client
     window.location.reload();
   };
 
@@ -425,6 +468,13 @@ export const AdminDashboard: React.FC = () => {
           <div className="bg-yellow-900/20 border-b border-yellow-600/30 p-2 text-center text-xs font-mono text-yellow-500 flex items-center justify-center gap-2">
               <AlertTriangle size={14} />
               <span>DEMO MODE ACTIVE: Changes will NOT be saved to database. Connect Supabase in Settings.</span>
+          </div>
+      )}
+
+      {supabase && !isAuthenticated && (
+          <div className="bg-red-900/20 border-b border-red-600/30 p-3 text-center text-xs font-mono text-red-500 flex items-center justify-center gap-2">
+              <ShieldAlert size={16} />
+              <span>SECURITY ALERT: You are connected but NOT logged in. Database policies will block saves. Please Logout and Login again.</span>
           </div>
       )}
 
