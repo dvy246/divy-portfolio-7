@@ -37,30 +37,51 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     try {
       console.log("Connecting to Supabase...");
-      // Attempt to fetch from Supabase
-      // We use Promise.allSettled to allow partial failures
-      const results = await Promise.allSettled([
+      
+      const [profileResult, projectsResult] = await Promise.allSettled([
         supabase.from('profile').select('*').single(),
-        supabase.from('skills').select('*'),
-        supabase.from('projects').select('*'),
-        supabase.from('blogs').select('*'),
-        supabase.from('resume').select('*').order('id', { ascending: false })
+        supabase.from('projects').select('*').order('id', { ascending: false }),
       ]);
 
-      // In a real implementation, we would map the 'results' to the state here.
-      // Since this is likely a demo without a real populated DB matching the schema exactly,
-      // we might want to keep using static data if the DB returns empty.
-      
-      // For this portfolio template, we will log success but keep static data 
-      // unless you implement the specific mapping logic based on your DB schema.
-      const successfulFetches = results.filter(r => r.status === 'fulfilled');
-      if (successfulFetches.length > 0) {
-          console.log(`Successfully connected to Supabase! Fetched ${successfulFetches.length} tables.`);
+      // 1. Handle Profile Data
+      if (profileResult.status === 'fulfilled' && profileResult.value.data) {
+        const dbProfile = profileResult.value.data;
+        setData(prev => ({
+          ...prev,
+          personalInfo: {
+            ...prev.personalInfo, // Keep defaults for missing fields
+            name: dbProfile.name || prev.personalInfo.name,
+            title: dbProfile.title || prev.personalInfo.title,
+            headline: dbProfile.headline || prev.personalInfo.headline,
+            subHeadline: dbProfile.sub_headline || prev.personalInfo.subHeadline,
+            avatarUrl: dbProfile.avatar_url || prev.personalInfo.avatarUrl,
+            email: dbProfile.email || prev.personalInfo.email,
+            // Assuming dbProfile.socials is a JSONB object, map it if exists
+            socials: dbProfile.socials || prev.personalInfo.socials
+          }
+        }));
       }
 
-      // To actually use DB data, you would do:
-      // if (results[0].status === 'fulfilled' && results[0].value.data) setData(prev => ({...prev, personalInfo: results[0].value.data}));
+      // 2. Handle Projects Data
+      if (projectsResult.status === 'fulfilled' && projectsResult.value.data && projectsResult.value.data.length > 0) {
+        const dbProjects = projectsResult.value.data.map((p: any) => ({
+            id: p.id,
+            title: p.title,
+            description: p.description,
+            tags: p.tags || [], // Assuming tags is an array in Postgres
+            image: p.image_url || "https://picsum.photos/600/400?grayscale",
+            liveLink: p.live_link || "#",
+            githubLink: p.github_link || "#"
+        }));
+        
+        setData(prev => ({
+            ...prev,
+            projects: dbProjects
+        }));
+      }
       
+      console.log("Supabase data sync complete.");
+
     } catch (error) {
       console.error("Error fetching data, falling back to static:", error);
     } finally {

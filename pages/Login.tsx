@@ -18,10 +18,10 @@ export const Login: React.FC = () => {
 
     // Fallback mode logic for demo since Supabase might not be connected
     if (!supabase) {
-        if(email === 'admin@demo.com' && password === 'demo') {
+        if(email === 'yadavdipu296@gmail.com' && password === 'fortknox') {
             navigate('/admin');
         } else {
-            setError('Demo Mode: Use admin@demo.com / demo');
+            setError('Demo Mode: Use yadavdipu296@gmail.com / fortknox');
         }
         setLoading(false);
         return;

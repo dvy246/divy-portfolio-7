@@ -4,7 +4,8 @@ export const PERSONAL_INFO = {
   name: "Divy Yadav",
   title: "Data Science & AI Enthusiast",
   headline: "Hey, I'm Divy.",
-  subHeadline: "I build Data science, GenAI, and agentic AI systems.",
+  subHeadline: "I build data science, GenAI, and agentic AI systems.",
+  avatarUrl: "https://picsum.photos/500/500?grayscale", // Default fallback
   email: "hello@divyyadav.com",
   socials: {
     github: "https://github.com",

@@ -68,7 +68,7 @@ export const Hero: React.FC = () => {
           
           <div className="w-full h-full rounded-full overflow-hidden border-4 border-light-bg dark:border-dark-bg relative z-20 shadow-2xl">
             <img 
-                src="https://picsum.photos/500/500?grayscale" 
+                src={personalInfo.avatarUrl} 
                 alt="Avatar" 
                 className="w-full h-full object-cover filter grayscale group-hover:grayscale-0 transition-all duration-500" 
             />
