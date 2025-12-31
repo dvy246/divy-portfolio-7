@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
@@ -34,6 +34,21 @@ const AppContent: React.FC = () => {
     const location = useLocation();
     // In HashRouter, pathname might be '/' or '/login' correctly.
     const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname === '/login';
+
+    // Force system cursor on Admin/Login pages
+    useEffect(() => {
+        if (isAdminRoute) {
+            document.body.style.cursor = 'auto';
+        } else {
+            // Revert to none for the custom cursor effect on the main site
+            document.body.style.cursor = 'none';
+        }
+        
+        // Cleanup
+        return () => {
+            document.body.style.cursor = 'none';
+        };
+    }, [isAdminRoute]);
 
     return (
         <main className="relative min-h-screen w-full overflow-x-hidden selection:bg-light-accent selection:text-white dark:selection:bg-dark-accent dark:selection:text-black">

@@ -33,6 +33,9 @@ export const AdminDashboard: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Store the actual DB ID of the profile
+  const [profileId, setProfileId] = useState<number | null>(null);
+
   // --- Profile State ---
   const [profileForm, setProfileForm] = useState({
       name: '',
@@ -60,7 +63,7 @@ export const AdminDashboard: React.FC = () => {
   const [dbUrl, setDbUrl] = useState('');
   const [dbKey, setDbKey] = useState('');
 
-  // Load initial data from Context
+  // 1. Load initial data from Context
   useEffect(() => {
     if (personalInfo) {
         setProfileForm({
@@ -72,6 +75,22 @@ export const AdminDashboard: React.FC = () => {
         });
     }
   }, [personalInfo]);
+
+  // 2. Fetch the REAL Profile ID from DB on mount to ensure we update the correct row
+  useEffect(() => {
+      const fetchProfileId = async () => {
+          if (!supabase) return;
+          try {
+            const { data, error } = await supabase.from('profile').select('id').limit(1).single();
+            if (data) {
+                setProfileId(data.id);
+            }
+          } catch (e) {
+              console.error("Could not fetch profile ID", e);
+          }
+      };
+      fetchProfileId();
+  }, []);
 
   useEffect(() => {
     setDbUrl(localStorage.getItem('REACT_APP_SUPABASE_URL') || '');
@@ -104,17 +123,25 @@ export const AdminDashboard: React.FC = () => {
                 finalAvatarUrl = await uploadImage(avatarFile);
             }
 
-            // Update or Insert profile (Assuming ID 1 is the main user)
-            const { error } = await supabase.from('profile').upsert({
-                id: 1,
+            const payload = {
                 name: profileForm.name,
                 headline: profileForm.headline,
                 sub_headline: profileForm.subHeadline,
                 email: profileForm.email,
                 avatar_url: finalAvatarUrl
-            });
-            
-            if (error) throw error;
+            };
+
+            // If we found an existing ID, update it. Otherwise, insert new.
+            if (profileId) {
+                const { error } = await supabase.from('profile').update(payload).eq('id', profileId);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase.from('profile').insert([payload]);
+                if (error) throw error;
+                // Fetch ID again for next time
+                const { data } = await supabase.from('profile').select('id').limit(1).single();
+                if (data) setProfileId(data.id);
+            }
         }
         
         // Refresh context to show changes immediately
@@ -262,10 +289,6 @@ export const AdminDashboard: React.FC = () => {
                 <button onClick={() => setActiveTab('projects')} className={`w-full text-left px-4 py-3 rounded font-mono text-sm flex items-center gap-3 transition-colors ${activeTab === 'projects' ? 'bg-dark-accent/10 text-dark-accent border border-dark-accent/30' : 'text-gray-500 hover:text-white'}`}>
                     <Layout size={16} /> Projects
                 </button>
-                <button onClick={() => setActiveTab('resume')} className={`w-full text-left px-4 py-3 rounded font-mono text-sm flex items-center gap-3 transition-colors ${activeTab === 'resume' ? 'bg-dark-accent/10 text-dark-accent border border-dark-accent/30' : 'text-gray-500 hover:text-white'}`}>
-                    <Layout size={16} /> Resume
-                </button>
-                <div className="my-4 border-t border-white/10" />
                 <button onClick={() => setActiveTab('settings')} className={`w-full text-left px-4 py-3 rounded font-mono text-sm flex items-center gap-3 transition-colors ${activeTab === 'settings' ? 'bg-dark-accent/10 text-dark-accent border border-dark-accent/30' : 'text-gray-500 hover:text-white'}`}>
                     <Settings size={16} /> Connection
                 </button>
@@ -279,7 +302,6 @@ export const AdminDashboard: React.FC = () => {
                     <h1 className="text-3xl font-sketch font-bold">
                         {activeTab === 'profile' && 'Edit Profile Info'}
                         {activeTab === 'projects' && (editingProject ? (editingProject.id ? 'Edit Project' : 'New Project') : 'Manage Projects')}
-                        {activeTab === 'resume' && 'Resume Timeline'}
                         {activeTab === 'settings' && 'Database Connection'}
                     </h1>
                     
