@@ -1,24 +1,132 @@
-import React, { useEffect, useState } from 'react';
-import { motion, useMotionValue, useSpring, animate } from 'framer-motion';
+import React, { useEffect, useState, memo } from 'react';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
+
+// --- Sub-component for Sparks to isolate re-renders ---
+const LightningSparks = memo(({ isHovering }: { isHovering: boolean }) => {
+    const [sparks, setSparks] = useState<{id: number, angle: number, path: string}[]>([]);
+
+    // Helper to generate a jagged lightning path
+    const getLightningPath = (angle: number, length: number) => {
+        const rad = angle * (Math.PI / 180);
+        const startX = 0;
+        const startY = 0;
+        const endX = Math.cos(rad) * length;
+        const endY = Math.sin(rad) * length;
+        
+        // Jitter settings
+        const segments = isHovering ? 3 : 2;
+        const jitter = isHovering ? 8 : 4;
+        
+        let d = `M${startX},${startY}`;
+        
+        for(let i=1; i<=segments; i++) {
+            const t = i / segments;
+            const targetX = startX + (endX - startX) * t;
+            const targetY = startY + (endY - startY) * t;
+            
+            // Simplified jitter: just randomize intermediate points
+            const jx = (Math.random() - 0.5) * jitter;
+            const jy = (Math.random() - 0.5) * jitter;
+            
+            if (i === segments) {
+                d += ` L${endX},${endY}`;
+            } else {
+                d += ` L${targetX + jx},${targetY + jy}`;
+            }
+        }
+
+        return d;
+    };
+
+    useEffect(() => {
+        // Use requestAnimationFrame for smoother "game-loop" style updates if needed, 
+        // but setInterval is fine if isolated. 
+        // We'll use a slightly randomized interval to feel more organic.
+        
+        let timeoutId: any;
+        
+        const loop = () => {
+            const count = isHovering ? 12 : 5; // More dense sparks
+            const length = isHovering ? 45 : 20; // Longer reach
+
+            const newSparks = Array.from({ length: count }).map((_, i) => ({
+                id: Date.now() + i,
+                angle: Math.random() * 360,
+                path: getLightningPath(Math.random() * 360, length * (0.5 + Math.random() * 0.5))
+            }));
+            
+            setSparks(newSparks);
+            
+            // Randomize timing between 30ms and 60ms for "crackling" feel
+            timeoutId = setTimeout(loop, 30 + Math.random() * 30);
+        };
+
+        loop();
+        return () => clearTimeout(timeoutId);
+    }, [isHovering]);
+
+    return (
+        <svg 
+            className="absolute w-40 h-40 overflow-visible pointer-events-none z-0" 
+            viewBox="-50 -50 100 100"
+            style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
+        >
+            <defs>
+                {/* Intense Blue Glow */}
+                <filter id="hard-glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                    <feMerge>
+                        <feMergeNode in="coloredBlur"/>
+                        <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                </filter>
+            </defs>
+            {sparks.map((spark) => (
+                <g key={spark.id}>
+                    {/* Layer 1: The Glow (Thick, Blurred, Colored) */}
+                    <path
+                        d={spark.path}
+                        stroke={isHovering ? "#00FFFF" : "#29D8FF"}
+                        strokeWidth={isHovering ? 4 : 2.5}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        filter="url(#hard-glow)"
+                        opacity={isHovering ? 0.6 : 0.4}
+                    />
+                    {/* Layer 2: The Core (Thin, Sharp, White) */}
+                    <path
+                        d={spark.path}
+                        stroke="#FFFFFF"
+                        strokeWidth={isHovering ? 1.5 : 1}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity={0.9}
+                    />
+                </g>
+            ))}
+        </svg>
+    );
+});
 
 export const CustomCursor: React.FC = () => {
   const [isHovering, setIsHovering] = useState(false);
   const [isClicking, setIsClicking] = useState(false);
   
-  // 1. LATENCY FIX: Use MotionValues directly without spring for the main container
-  // This ensures the cursor feels 1:1 with hardware mouse movement
+  // 1. LATENCY FIX: 
+  // We strictly use useMotionValue for coordinates.
+  // We do NOT store mouse position in React state.
   const mouseX = useMotionValue(-100);
   const mouseY = useMotionValue(-100);
 
-  // We use a very tight spring only for the "trailing" sparks to give them weight, not the main cursor
-  const trailX = useSpring(mouseX, { damping: 20, stiffness: 300, mass: 0.5 });
-  const trailY = useSpring(mouseY, { damping: 20, stiffness: 300, mass: 0.5 });
-
-  const [sparks, setSparks] = useState<{id: number, angle: number, scale: number, opacity: number}[]>([]);
+  // Smooth trail spring
+  const trailX = useSpring(mouseX, { damping: 25, stiffness: 400, mass: 0.2 });
+  const trailY = useSpring(mouseY, { damping: 25, stiffness: 400, mass: 0.2 });
 
   useEffect(() => {
+    // Passive event listener for max performance
     const moveCursor = (e: MouseEvent) => {
-      // Center the cursor (assuming ~24px size)
       mouseX.set(e.clientX);
       mouseY.set(e.clientY);
     };
@@ -28,7 +136,6 @@ export const CustomCursor: React.FC = () => {
 
     const handleMouseOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      // Check for clickable elements
       const isClickable = 
         target.tagName === 'A' || 
         target.tagName === 'BUTTON' || 
@@ -41,7 +148,7 @@ export const CustomCursor: React.FC = () => {
       setIsHovering(!!isClickable);
     };
 
-    window.addEventListener('mousemove', moveCursor);
+    window.addEventListener('mousemove', moveCursor, { passive: true });
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
     window.addEventListener('mouseover', handleMouseOver);
@@ -54,47 +161,11 @@ export const CustomCursor: React.FC = () => {
     };
   }, [mouseX, mouseY]);
 
-  // Lightning Generation Loop
-  useEffect(() => {
-    const interval = setInterval(() => {
-        // Generate random sparks
-        // More sparks on hover (8 vs 4)
-        const count = isHovering ? 8 : 4;
-        const newSparks = Array.from({ length: count }).map((_, i) => ({
-            id: Date.now() + i,
-            angle: Math.random() * 360,
-            scale: Math.random() * 0.5 + 0.5,
-            opacity: Math.random()
-        }));
-        setSparks(newSparks);
-    }, 40); // Faster flicker rate (40ms) for high energy feel
-
-    return () => clearInterval(interval);
-  }, [isHovering]);
-
-  // Helper to generate a jagged lightning path for a spark
-  const getLightningPath = (angle: number, length: number) => {
-      const rad = angle * (Math.PI / 180);
-      // Origin is now 0,0 (Center) due to viewBox setting
-      const startX = 0;
-      const startY = 0;
-      const endX = Math.cos(rad) * length;
-      const endY = Math.sin(rad) * length;
-      
-      // Create midpoint jitter
-      // Increased jitter on hover for more chaotic "spark"
-      const jitterAmount = isHovering ? 15 : 5;
-      const midX = (startX + endX) / 2 + (Math.random() - 0.5) * jitterAmount;
-      const midY = (startY + endY) / 2 + (Math.random() - 0.5) * jitterAmount;
-
-      return `M${startX},${startY} Q${midX},${midY} ${endX},${endY}`;
-  };
-
   return (
     <>
-      {/* MAIN HARDWARE CURSOR REPLACEMENT (Zero Latency) */}
+      {/* MAIN CURSOR (Zero Latency) */}
       <motion.div
-        className="fixed top-0 left-0 pointer-events-none z-[9999] hidden md:block"
+        className="fixed top-0 left-0 pointer-events-none z-[9999] hidden md:block will-change-transform"
         style={{
           x: mouseX,
           y: mouseY,
@@ -102,65 +173,23 @@ export const CustomCursor: React.FC = () => {
           translateY: "-50%"
         }}
       >
-        <div className="relative flex items-center justify-center w-8 h-8">
+        <div className="relative flex items-center justify-center w-0 h-0">
              {/* 1. Core Plasma Dot */}
              <motion.div 
                 animate={{ 
-                    scale: isClicking ? 0.8 : (isHovering ? 1.8 : 1), // Pulse larger on hover
-                    filter: isHovering ? "blur(1px)" : "blur(0px)"
+                    scale: isClicking ? 0.5 : (isHovering ? 1.5 : 1), 
                 }}
-                className={`rounded-full bg-white shadow-[0_0_15px_2px_rgba(41,216,255,0.8)] z-20 ${isHovering ? 'w-2 h-2' : 'w-1.5 h-1.5'}`}
+                className={`rounded-full bg-white z-20 ${isHovering ? 'w-3 h-3 shadow-[0_0_20px_4px_#00FFFF]' : 'w-2 h-2 shadow-[0_0_10px_2px_rgba(41,216,255,0.8)]'}`}
              />
              
-             {/* 2. Inner Blue Glow Ring (Rotates) */}
-             <motion.div 
-                animate={{ 
-                    rotate: 360, 
-                    scale: isHovering ? 1.4 : 0.8,
-                    opacity: isHovering ? 1 : 0.5,
-                    borderWidth: isHovering ? "2px" : "1px"
-                }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0 rounded-full border border-cyan-400/50 z-10"
-             />
-
-             {/* 3. Dynamic Lightning Sparks */}
-             {/* ALIGNMENT FIX: viewBox="-50 -50 100 100" sets 0,0 to the center of the SVG */}
-             <svg 
-                className="absolute w-32 h-32 overflow-visible pointer-events-none z-0 opacity-80" 
-                viewBox="-50 -50 100 100"
-                style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
-             >
-                 <defs>
-                     <filter id="spark-glow">
-                         <feGaussianBlur stdDeviation="0.8" result="coloredBlur"/>
-                         <feMerge>
-                             <feMergeNode in="coloredBlur"/>
-                             <feMergeNode in="SourceGraphic"/>
-                         </feMerge>
-                     </filter>
-                 </defs>
-                 {sparks.map((spark) => (
-                     <motion.path
-                        key={spark.id}
-                        // Longer sparks on hover (40 vs 15)
-                        d={getLightningPath(spark.angle, isHovering ? 40 : 15)}
-                        stroke={isHovering ? "#29D8FF" : "#FFFFFF"}
-                        strokeWidth={isHovering ? 2 : 1}
-                        fill="none"
-                        filter="url(#spark-glow)"
-                        initial={{ pathLength: 0, opacity: 0 }}
-                        animate={{ pathLength: 1, opacity: [0, 1, 0] }}
-                        transition={{ duration: 0.1 }}
-                     />
-                 ))}
-             </svg>
+             {/* 2. Isolated Spark Component (Re-renders independently) */}
+             <LightningSparks isHovering={isHovering} />
         </div>
       </motion.div>
 
-      {/* TRAILING GHOST (Slight Latency for visual smoothness) */}
+      {/* TRAILING GHOST (Smooth Follow) */}
       <motion.div
-        className="fixed top-0 left-0 pointer-events-none z-[9998] hidden md:block"
+        className="fixed top-0 left-0 pointer-events-none z-[9998] hidden md:block will-change-transform"
         style={{
           x: trailX,
           y: trailY,
@@ -168,9 +197,10 @@ export const CustomCursor: React.FC = () => {
           translateY: "-50%"
         }}
       >
+         {/* Simplified Glow for performance */}
          <motion.div 
-            animate={{ scale: isHovering ? 1.5 : 1 }}
-            className="w-12 h-12 bg-cyan-500/10 rounded-full blur-xl" 
+            animate={{ scale: isHovering ? 2 : 1, opacity: isHovering ? 0.8 : 0.4 }}
+            className="w-8 h-8 bg-cyan-500/30 rounded-full blur-xl" 
          />
       </motion.div>
     </>

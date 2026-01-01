@@ -162,7 +162,7 @@ export const ThorIntro: React.FC<ThorIntroProps> = ({ onComplete }) => {
   );
 };
 
-const Particle = ({ index }: { index: number }) => {
+const Particle: React.FC<{ index: number }> = ({ index }) => {
     const angle = Math.random() * Math.PI * 2;
     const velocity = 500 + Math.random() * 1000;
     const endX = Math.cos(angle) * velocity;
