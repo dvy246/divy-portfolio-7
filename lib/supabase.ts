@@ -32,7 +32,6 @@ const getEnv = (key: string) => {
     } catch (e) {}
   }
 
-  // CRITICAL FIX: Trim whitespace which causes new URL() to fail
   return value ? value.trim() : undefined;
 };
 
@@ -43,18 +42,19 @@ const createSafeClient = () => {
   if (!supabaseUrl || !supabaseKey) return null;
 
   try {
-    // Validate URL format before attempting to create client
-    // invalid URLs cause createClient to throw immediately, crashing the app
-    const urlObj = new URL(supabaseUrl); 
-    // Ensure it's actually an HTTP/HTTPS url
-    if (!urlObj.protocol.startsWith('http')) {
-        console.warn("Supabase URL must start with http/https");
+    // strict validation to prevent app crash on garbage URLs
+    const urlObj = new URL(supabaseUrl);
+    
+    // Ensure it's a valid protocol to avoid network errors later
+    if (!['http:', 'https:'].includes(urlObj.protocol)) {
+        console.warn("Supabase URL must use http or https protocol.");
         return null;
     }
-    
+
     return createClient(supabaseUrl, supabaseKey);
   } catch (error) {
-    console.error("Invalid Supabase URL provided. Falling back to Demo Mode.", error);
+    console.error("Invalid Supabase Configuration. Falling back to Demo Mode.", error);
+    // Return null instead of crashing, allowing the app to render in read-only/demo mode
     return null;
   }
 }

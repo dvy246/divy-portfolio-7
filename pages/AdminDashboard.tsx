@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, LogOut, CheckCircle, Layout, Edit3, Plus, Trash2, Database, Settings, Upload, X, Image as ImageIcon, Briefcase, GraduationCap, FileText, RefreshCw, Rss, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Save, LogOut, CheckCircle, Layout, Edit3, Plus, Trash2, Database, Settings, Upload, X, Image as ImageIcon, Briefcase, GraduationCap, FileText, RefreshCw, Rss, AlertTriangle, ShieldAlert, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 import { supabase } from '../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 // --- Helpers defined OUTSIDE component ---
 
@@ -116,6 +117,7 @@ export const AdminDashboard: React.FC = () => {
   // --- Settings State ---
   const [dbUrl, setDbUrl] = useState('');
   const [dbKey, setDbKey] = useState('');
+  const [isConnecting, setIsConnecting] = useState(false);
 
   // AUTH CHECK: Ensure user is logged in if Supabase is connected
   useEffect(() => {
@@ -413,32 +415,77 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // --- SETTINGS HANDLERS ---
+  // --- SETTINGS HANDLERS (Improved) ---
   const handleConnectionSave = async () => {
-    // 1. Trim Inputs
-    const cleanUrl = dbUrl.trim();
-    const cleanKey = dbKey.trim();
-
-    // 2. Validate URL
-    if (!cleanUrl) {
-        alert("Please enter a Project URL.");
-        return;
-    }
-    if (!cleanUrl.startsWith('https://')) {
-        alert("Invalid URL. It must start with 'https://'. Please copy the full URL from your Supabase dashboard.");
-        return;
-    }
-    if (!cleanKey) {
-        alert("Please enter the Anon/Public Key.");
-        return;
-    }
-
-    // 3. Save to Storage
-    localStorage.setItem('REACT_APP_SUPABASE_URL', cleanUrl);
-    localStorage.setItem('REACT_APP_SUPABASE_ANON_KEY', cleanKey);
+    setIsConnecting(true);
     
-    // 4. Reload to initialize Supabase client
-    window.location.reload();
+    try {
+        // 1. Sanitize Inputs
+        let cleanUrl = dbUrl.trim();
+        const cleanKey = dbKey.trim();
+
+        if (!cleanUrl) {
+            throw new Error("Please enter a Project URL.");
+        }
+        
+        // Auto-fix URL scheme
+        if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+            cleanUrl = 'https://' + cleanUrl;
+        }
+
+        // Remove ALL trailing slashes
+        cleanUrl = cleanUrl.replace(/\/+$/, '');
+
+        if (!cleanKey) {
+            throw new Error("Please enter the Anon/Public Key.");
+        }
+
+        // 2. DRY RUN: Create a temporary client to verify credentials
+        // We use the locally imported createClient here, not the app's global instance
+        let tempClient;
+        try {
+            tempClient = createClient(cleanUrl, cleanKey);
+        } catch (e) {
+            throw new Error("Invalid URL format. Please check your Supabase URL.");
+        }
+
+        // 3. Attempt a lightweight query (Head request)
+        // We query 'profile' table. Even if it doesn't exist, Supabase will return a 404 or specific error,
+        // but if Auth/URL is wrong, it returns a connection/auth error.
+        const { error } = await tempClient.from('profile').select('count', { count: 'exact', head: true });
+
+        // Analyze Error
+        if (error) {
+            // If the error is network related or auth related, we block.
+            // If the error is 'relation "profile" does not exist', that means CONNECTION IS GOOD, just empty DB.
+            if (error.code === 'PGRST204' || error.message.includes('does not exist')) {
+                // Connection successful, schema missing (acceptable for new setup)
+            } else if (error.code === '401' || error.message.includes('JWT')) {
+                 throw new Error("Authentication Failed. Check your Anon Key.");
+            } else if (error.message.includes('FetchError') || error.message.includes('Failed to fetch')) {
+                 throw new Error("Network Error. Check URL or CORS settings.");
+            } else {
+                // For safety, warn about other errors but might proceed if it's just a query error
+                console.warn("Connection Warning:", error);
+            }
+        }
+
+        // 4. Save to Storage if successful
+        localStorage.setItem('REACT_APP_SUPABASE_URL', cleanUrl);
+        localStorage.setItem('REACT_APP_SUPABASE_ANON_KEY', cleanKey);
+        
+        showToast();
+
+        // 5. Reload to initialize the real app client
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+
+    } catch (e: any) {
+        alert("Connection Failed: " + e.message);
+    } finally {
+        setIsConnecting(false);
+    }
   };
 
   const clearSettings = () => {
@@ -731,8 +778,22 @@ export const AdminDashboard: React.FC = () => {
                                          <Trash2 size={16} /> DISCONNECT
                                      </button>
                                  )}
-                                 <motion.button onClick={handleConnectionSave} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-2 bg-dark-accent text-black font-bold font-sketch rounded flex items-center gap-2">
-                                     <Save size={18} /> CONNECT
+                                 <motion.button 
+                                    onClick={handleConnectionSave} 
+                                    disabled={isConnecting}
+                                    whileHover={{ scale: 1.05 }} 
+                                    whileTap={{ scale: 0.95 }} 
+                                    className="px-6 py-2 bg-dark-accent text-black font-bold font-sketch rounded flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+                                 >
+                                     {isConnecting ? (
+                                        <>
+                                            <Loader2 size={18} className="animate-spin" /> VERIFYING...
+                                        </>
+                                     ) : (
+                                        <>
+                                            <Save size={18} /> CONNECT
+                                        </>
+                                     )}
                                 </motion.button>
                              </div>
                         </div>
