@@ -140,7 +140,7 @@ export const CustomCursor: React.FC = () => {
         target.tagName === 'A' || 
         target.tagName === 'BUTTON' || 
         target.tagName === 'INPUT' || 
-        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'TEXTAREA' || 
         target.closest('a') || 
         target.closest('button') ||
         target.getAttribute('role') === 'button';

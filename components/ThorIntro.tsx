@@ -6,184 +6,140 @@ interface ThorIntroProps {
 }
 
 export const ThorIntro: React.FC<ThorIntroProps> = ({ onComplete }) => {
-  const [stage, setStage] = useState<'void' | 'charge' | 'beam' | 'impact' | 'aftermath'>('void');
+  const [stage, setStage] = useState<'void' | 'charge' | 'beam' | 'impact' | 'handover'>('void');
 
   useEffect(() => {
-    // 1. The Void (Silence before the storm)
+    // Phase 1: Atmosphere (0ms) - Already rendered by default state
     
-    // 2. Charge Up (0.5s) - Sky lights up
-    setTimeout(() => setStage('charge'), 500);
+    // Phase 2: The Charge (500ms) - Lightning flickers
+    const t1 = setTimeout(() => setStage('charge'), 500);
 
-    // 3. The Bifrost Slams (1.0s)
-    setTimeout(() => setStage('beam'), 1000);
+    // Phase 3: The Bifrost Strike (1000ms) - Beam slams down
+    const t2 = setTimeout(() => setStage('beam'), 1000);
 
-    // 4. IMPACT (1.1s) - The exact moment of contact
-    setTimeout(() => setStage('impact'), 1100);
+    // Phase 4: The Impact (1050ms) - Flash & Shake (Slightly after beam starts for weight)
+    const t3 = setTimeout(() => setStage('impact'), 1050);
 
-    // 5. Aftermath (1.6s) - Smoke clears, energy lingers
-    setTimeout(() => setStage('aftermath'), 1800);
+    // Phase 5: Handover (1800ms) - Fade out
+    const t4 = setTimeout(() => setStage('handover'), 1800);
 
-    // 6. Release control (3.0s)
-    setTimeout(() => onComplete(), 3000);
+    // Cleanup (2100ms)
+    const t5 = setTimeout(() => onComplete(), 2100);
 
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+      clearTimeout(t5);
+    };
   }, [onComplete]);
+
+  // Shake Keyframes for the camera impact
+  const shakeKeyframes = {
+    x: [0, -20, 20, -10, 10, -5, 5, 0],
+    y: [0, 15, -15, 10, -10, 5, -5, 0]
+  };
 
   return (
     <motion.div 
-        className="fixed inset-0 z-[99999] bg-[#020202] flex items-center justify-center overflow-hidden pointer-events-none"
-        animate={stage === 'aftermath' ? { opacity: 0, pointerEvents: "none" } : { opacity: 1 }}
-        transition={{ duration: 1.2, ease: "easeOut" }}
+        className="fixed inset-0 z-[99999] bg-[#050505] flex items-center justify-center overflow-hidden"
+        animate={stage === 'handover' ? { opacity: 0 } : { opacity: 1 }}
+        transition={{ duration: 0.3, ease: "linear" }}
     >
-      {/* --- LAYER 1: THE VOID / ATMOSPHERE --- */}
+      {/* CONTAINER: Handles the violent shake */}
       <motion.div
-        className="absolute inset-0 w-full h-full"
-        animate={
-            stage === 'void' ? { scale: 1 } :
-            stage === 'charge' ? { scale: 1.1, filter: "brightness(1.5)" } :
-            stage === 'impact' ? { x: [-40, 40, -30, 30, -10, 10, 0], y: [-20, 20, -10, 10, 0] } : // VIOLENT SHAKE
-            { x: 0, y: 0 }
-        }
-        transition={stage === 'impact' ? { duration: 0.4 } : { duration: 2 }}
+        className="relative w-full h-full"
+        animate={stage === 'impact' ? shakeKeyframes : { x: 0, y: 0 }}
+        transition={{ duration: 0.3, ease: "linear" }}
       >
-          {/* Pulsing Dark Cloud Background */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#1a1a1a_0%,_#000000_80%)] opacity-80" />
+          {/* --- PHASE 1: ATMOSPHERE --- */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_#1e1b4b_0%,_#050505_70%)] opacity-40 animate-pulse" />
           
-          {/* Charge Up Flash (Sky turns blue/purple) */}
-          <motion.div 
-             className="absolute inset-0 bg-gradient-to-b from-cyan-900/40 via-purple-900/20 to-transparent"
-             initial={{ opacity: 0 }}
-             animate={stage === 'charge' ? { opacity: 1 } : { opacity: 0 }}
-             transition={{ duration: 0.3 }}
-          />
-      </motion.div>
+          {/* --- PHASE 2: CHARGE (Peripheral Lightning) --- */}
+          <AnimatePresence>
+            {stage === 'charge' && (
+                <>
+                    <LightningBolt className="top-0 left-[20%] w-48 h-96" delay={0} />
+                    <LightningBolt className="top-[10%] right-[20%] w-48 h-96 scale-x-[-1]" delay={0.1} />
+                    <LightningBolt className="bottom-0 left-[10%] w-64 h-64 rotate-180" delay={0.2} />
+                </>
+            )}
+          </AnimatePresence>
 
-      {/* --- LAYER 2: THE BIFROST (Multi-Layer Beam) --- */}
-      <AnimatePresence>
-        {(stage === 'beam' || stage === 'impact') && (
-            <div className="absolute inset-0 flex justify-center items-center">
-                {/* Outer Glow (Massive) */}
-                <motion.div
-                    initial={{ height: 0, width: "20px", opacity: 0 }}
-                    animate={{ height: "150vh", width: "300px", opacity: 0.4 }}
-                    exit={{ opacity: 0, scaleX: 2, filter: "blur(20px)" }}
-                    transition={{ duration: 0.1 }}
-                    className="bg-cyan-500 blur-3xl absolute"
-                />
-                
-                {/* Middle Plasma (Blue) */}
-                <motion.div
-                    initial={{ height: 0, width: "10px", opacity: 0 }}
-                    animate={{ height: "120vh", width: "120px", opacity: 0.8 }}
-                    exit={{ opacity: 0, width: "0px" }}
-                    transition={{ duration: 0.1, delay: 0.02 }}
-                    className="bg-gradient-to-r from-transparent via-cyan-400 to-transparent absolute"
-                    style={{ mixBlendMode: 'screen' }}
-                />
-
-                {/* Core Energy (Pure White Hot) */}
-                <motion.div
-                    initial={{ height: 0, width: "5px", opacity: 0 }}
-                    animate={{ height: "100vh", width: "40px", opacity: 1 }}
-                    exit={{ opacity: 0, width: "200px" }} // Explodes outward on exit
-                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                    className="bg-white relative z-50 shadow-[0_0_100px_white]"
-                />
-            </div>
-        )}
-      </AnimatePresence>
-
-      {/* --- LAYER 3: THE IMPACT (Ground Zero) --- */}
-      {stage === 'impact' || stage === 'aftermath' ? (
-          <>
-            {/* 1. NEGATIVE FLASH (Retinal Shock) */}
-            <motion.div 
-                className="absolute inset-0 z-[100] bg-white mix-blend-difference"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0, 1, 0] }}
-                transition={{ duration: 0.1 }} // Instant flash
-            />
-
-            {/* 2. Whiteout Flash */}
-            <motion.div 
-                className="absolute inset-0 z-[90] bg-white"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [1, 0] }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-            />
-
-            {/* 3. Primary Shockwave (Hard Ring) */}
-            <motion.div
-                className="absolute rounded-full border-[60px] border-cyan-200"
-                initial={{ width: 0, height: 0, opacity: 1 }}
-                animate={{ width: "250vmax", height: "250vmax", opacity: 0, borderWidth: "0px" }}
-                transition={{ duration: 0.6, ease: "circOut" }}
-                style={{ transform: "translate(-50%, -50%)", left: "50%", top: "50%" }}
-            />
-
-            {/* 4. Secondary Shockwave (Distortion) */}
-            <motion.div
-                className="absolute rounded-full border-[20px] border-white blur-md"
-                initial={{ width: 0, height: 0, opacity: 0.8 }}
-                animate={{ width: "150vmax", height: "150vmax", opacity: 0 }}
-                transition={{ duration: 1.2, ease: "easeOut", delay: 0.1 }}
-                style={{ transform: "translate(-50%, -50%)", left: "50%", top: "50%" }}
-            />
-
-            {/* 5. Particle Explosion (Debris) */}
-            {[...Array(20)].map((_, i) => (
-                <Particle key={i} index={i} />
-            ))}
-          </>
-      ) : null}
-
-      {/* --- LAYER 4: AFTERMATH (Residual Energy) --- */}
-      {stage === 'aftermath' && (
-          <div className="absolute inset-0 z-50">
-               {/* Cracks in reality */}
-               <svg className="w-full h-full opacity-30 mix-blend-overlay">
-                    <filter id="crack-glow">
-                        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-                        <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                        </feMerge>
-                    </filter>
-                    <motion.path 
-                        d="M 500 500 L 550 450 L 580 480 L 650 420"
-                        stroke="white" strokeWidth="2" fill="none"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                        className="drop-shadow-[0_0_10px_cyan]"
-                    />
-               </svg>
+          {/* --- PHASE 3: THE BIFROST (Vertical Beam) --- */}
+          <div className="absolute inset-0 flex justify-center items-center pointer-events-none">
+             <AnimatePresence>
+                {(stage === 'beam' || stage === 'impact') && (
+                    <>
+                        {/* 1. The Core Beam (Pure White) - GPU SCALED */}
+                        <motion.div
+                            initial={{ scaleY: 0, opacity: 1 }}
+                            animate={{ scaleY: 1, opacity: 1 }}
+                            exit={{ scaleY: 2, opacity: 0 }}
+                            transition={{ duration: 0.15, ease: "circIn" }}
+                            style={{ originY: 0 }} // Scale from top
+                            className="w-[60px] h-screen bg-white shadow-[0_0_100px_rgba(255,255,255,1)] relative z-50"
+                        />
+                        
+                        {/* 2. The Outer Glow (Cyan) - GPU SCALED */}
+                        <motion.div
+                            initial={{ scaleY: 0, opacity: 0.5 }}
+                            animate={{ scaleY: 1, opacity: 0.8 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2, ease: "circIn", delay: 0.02 }}
+                            style={{ originY: 0 }}
+                            className="absolute w-[200px] h-screen bg-cyan-400 blur-2xl z-40"
+                        />
+                    </>
+                )}
+             </AnimatePresence>
           </div>
-      )}
 
+          {/* --- PHASE 4: THE IMPACT --- */}
+          {stage === 'impact' && (
+            <>
+                {/* 1. Retinal Flash (Blinding White) */}
+                <motion.div 
+                    className="absolute inset-0 bg-white z-[60]"
+                    initial={{ opacity: 1 }}
+                    animate={{ opacity: 0 }}
+                    transition={{ duration: 0.6, ease: "easeOut" }}
+                />
+
+                {/* 2. Shockwave Ripple */}
+                <div className="absolute inset-0 flex items-center justify-center z-30">
+                    <motion.div
+                        className="rounded-full border-[20px] border-cyan-300"
+                        initial={{ width: 0, height: 0, opacity: 1 }}
+                        animate={{ width: "150vmax", height: "150vmax", opacity: 0 }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                    />
+                </div>
+            </>
+          )}
+
+      </motion.div>
     </motion.div>
   );
 };
 
-const Particle: React.FC<{ index: number }> = ({ index }) => {
-    const angle = Math.random() * Math.PI * 2;
-    const velocity = 500 + Math.random() * 1000;
-    const endX = Math.cos(angle) * velocity;
-    const endY = Math.sin(angle) * velocity;
+// --- SUB-COMPONENT: Optimized Lightning Bolt ---
+const LightningBolt: React.FC<{ className?: string, delay: number }> = ({ className, delay }) => {
+    // A jagged path for the bolt
+    const d = "M50,0 L60,20 L40,40 L70,60 L30,80 L50,100";
 
     return (
-        <motion.div
-            className="absolute bg-white rounded-full z-40"
-            initial={{ x: 0, y: 0, scale: Math.random() * 2 + 1, opacity: 1 }}
-            animate={{ 
-                x: endX, 
-                y: endY, 
-                opacity: 0,
-                scale: 0 
-            }}
-            transition={{ duration: 0.8 + Math.random() * 0.5, ease: [0.19, 1, 0.22, 1] }}
-            style={{ 
-                width: Math.random() > 0.5 ? '4px' : '8px', 
-                height: Math.random() > 0.5 ? '4px' : '8px',
-                boxShadow: "0 0 20px cyan" 
-            }}
-        />
+        <svg viewBox="0 0 100 100" className={`absolute ${className} drop-shadow-[0_0_15px_#22d3ee]`}>
+            <motion.path
+                d={d}
+                stroke="#A5F3FC"
+                strokeWidth="2"
+                fill="none"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: [0, 1, 0, 1, 0] }}
+                transition={{ duration: 0.2, delay: delay }}
+            />
+        </svg>
     )
 }
