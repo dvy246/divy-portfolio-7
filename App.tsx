@@ -12,14 +12,16 @@ import { Resume } from './components/Resume';
 import { Login } from './pages/Login';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { PortfolioProvider } from './context/PortfolioContext';
+import { ShatteredGlassIntro } from './components/ShatteredGlassIntro';
 import { ThorIntro } from './components/ThorIntro';
 
-const MainPortfolio: React.FC = () => {
+const MainPortfolio: React.FC<{ startHeroAnim: boolean }> = ({ startHeroAnim }) => {
   return (
     <>
       <Navbar />
       <div className="flex flex-col gap-0">
-        <Hero />
+        {/* Pass the animation signal to Hero */}
+        <Hero startAnimation={startHeroAnim} />
         <Skills />
         <Projects />
         <Resume />
@@ -30,35 +32,56 @@ const MainPortfolio: React.FC = () => {
   );
 };
 
-// Wrapper to hide cursor/scroll progress on Admin routes if desired
 const AppContent: React.FC = () => {
     const location = useLocation();
     const isAdminRoute = location.pathname.startsWith('/admin') || location.pathname === '/login';
-    const [showIntro, setShowIntro] = useState(false);
+    
+    // Intro State Management
+    // Stages: 'thor' -> 'shatter' -> 'hero'
+    const [showThor, setShowThor] = useState(false);
+    const [showShatter, setShowShatter] = useState(false);
+    const [triggerShatter, setTriggerShatter] = useState(false);
+    const [introComplete, setIntroComplete] = useState(false);
 
     // Initial Intro Logic
     useEffect(() => {
-        // Check session storage to only show Thor Intro once per session
-        const hasSeenIntro = sessionStorage.getItem('thor_intro_seen');
+        const hasSeenIntro = sessionStorage.getItem('full_intro_seen');
         if (!hasSeenIntro && !isAdminRoute) {
-            setShowIntro(true);
-            sessionStorage.setItem('thor_intro_seen', 'true');
+            // Start with Thor
+            setShowThor(true);
+            // Mount Shatter component immediately (behind Thor) so it's ready as a white background
+            setShowShatter(true); 
+            
+            sessionStorage.setItem('full_intro_seen', 'true');
+        } else {
+            // Skip intro
+            setIntroComplete(true);
         }
     }, [isAdminRoute]);
+
+    const handleThorComplete = () => {
+        // Thor has faded out, revealing the ShatteredGlassIntro (White screen) behind it.
+        setShowThor(false);
+        
+        // Brief pause on the white screen, then shatter
+        setTimeout(() => {
+            setTriggerShatter(true);
+        }, 100);
+    };
+
+    const handleShatterComplete = () => {
+        setShowShatter(false);
+        setIntroComplete(true); // Triggers Hero animations
+    };
 
     // Force system cursor on Admin/Login pages
     useEffect(() => {
         if (isAdminRoute) {
             document.body.style.cursor = 'auto';
         } else {
-            // Revert to none for the custom cursor effect on the main site
             document.body.style.cursor = 'none';
         }
-        
-        // Cleanup
-        return () => {
-            document.body.style.cursor = 'none';
-        };
+        return () => { document.body.style.cursor = 'none'; };
     }, [isAdminRoute]);
 
     return (
@@ -66,15 +89,25 @@ const AppContent: React.FC = () => {
           {!isAdminRoute && <CustomCursor />}
           {!isAdminRoute && <ScrollProgress />}
 
-          {/* The God Landing */}
-          {showIntro && <ThorIntro onComplete={() => setShowIntro(false)} />}
+          {/* 1. THOR INTRO (Top Layer) */}
+          {showThor && (
+              <ThorIntro onComplete={handleThorComplete} />
+          )}
+
+          {/* 2. SHATTERED GLASS INTRO (Middle Layer) */}
+          {/* We keep this mounted while Thor plays so the white background is ready when Thor fades out */}
+          {showShatter && (
+              <ShatteredGlassIntro 
+                  triggerShatter={triggerShatter} 
+                  onComplete={handleShatterComplete} 
+              />
+          )}
           
           <Routes>
-            <Route path="/" element={<MainPortfolio />} />
+            <Route path="/" element={<MainPortfolio startHeroAnim={introComplete} />} />
             <Route path="/login" element={<Login />} />
             <Route path="/admin" element={<AdminDashboard />} />
-            {/* Fallback route to redirect to home if path doesn't match */}
-            <Route path="*" element={<MainPortfolio />} />
+            <Route path="*" element={<MainPortfolio startHeroAnim={introComplete} />} />
           </Routes>
         </main>
     )
