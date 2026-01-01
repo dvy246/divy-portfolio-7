@@ -428,6 +428,11 @@ export const AdminDashboard: React.FC = () => {
             throw new Error("Please enter a Project URL.");
         }
         
+        // WARN: Check if user pasted the dashboard URL instead of API URL
+        if (cleanUrl.includes('supabase.com')) {
+            throw new Error("Invalid URL. It looks like you pasted the Dashboard URL (supabase.com). Please use the Project URL (usually ends in .supabase.co) found in Project Settings > API.");
+        }
+
         // Auto-fix URL scheme
         if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
             cleanUrl = 'https://' + cleanUrl;
@@ -449,25 +454,14 @@ export const AdminDashboard: React.FC = () => {
             throw new Error("Invalid URL format. Please check your Supabase URL.");
         }
 
-        // 3. Attempt a lightweight query (Head request)
-        // We query 'profile' table. Even if it doesn't exist, Supabase will return a 404 or specific error,
-        // but if Auth/URL is wrong, it returns a connection/auth error.
-        const { error } = await tempClient.from('profile').select('count', { count: 'exact', head: true });
+        // 3. Attempt a LIGHTWEIGHT Verification (Auth Session Check)
+        // We use auth.getSession() because it doesn't depend on any specific tables existing.
+        // It simply checks if the URL and Key are valid enough to reach the Auth service.
+        const { error } = await tempClient.auth.getSession();
 
         // Analyze Error
         if (error) {
-            // If the error is network related or auth related, we block.
-            // If the error is 'relation "profile" does not exist', that means CONNECTION IS GOOD, just empty DB.
-            if (error.code === 'PGRST204' || error.message.includes('does not exist')) {
-                // Connection successful, schema missing (acceptable for new setup)
-            } else if (error.code === '401' || error.message.includes('JWT')) {
-                 throw new Error("Authentication Failed. Check your Anon Key.");
-            } else if (error.message.includes('FetchError') || error.message.includes('Failed to fetch')) {
-                 throw new Error("Network Error. Check URL or CORS settings.");
-            } else {
-                // For safety, warn about other errors but might proceed if it's just a query error
-                console.warn("Connection Warning:", error);
-            }
+             throw new Error("Connection failed: " + error.message);
         }
 
         // 4. Save to Storage if successful
@@ -482,7 +476,12 @@ export const AdminDashboard: React.FC = () => {
         }, 1000);
 
     } catch (e: any) {
-        alert("Connection Failed: " + e.message);
+        // Handle standard "NetworkError" specifically
+        if (e.message && (e.message.includes('NetworkError') || e.message.includes('Failed to fetch'))) {
+            alert("Network Error: Could not reach Supabase. \n\n1. Ensure you used the Project URL (ends in .supabase.co), NOT the Dashboard URL.\n2. Disable AdBlockers (uBlock Origin often blocks Supabase).\n3. Check your internet connection.");
+        } else {
+            alert(e.message);
+        }
     } finally {
         setIsConnecting(false);
     }
