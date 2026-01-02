@@ -86,7 +86,8 @@ export const AdminDashboard: React.FC = () => {
       headline: '',
       subHeadline: '',
       email: '',
-      avatarUrl: ''
+      avatarUrl: '',
+      socials: { github: '', twitter: '', linkedin: '', medium: '' }
   });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
@@ -156,7 +157,13 @@ export const AdminDashboard: React.FC = () => {
             headline: personalInfo.headline,
             subHeadline: personalInfo.subHeadline,
             email: personalInfo.email,
-            avatarUrl: personalInfo.avatarUrl
+            avatarUrl: personalInfo.avatarUrl,
+            socials: {
+                github: personalInfo.socials?.github || '',
+                twitter: personalInfo.socials?.twitter || '',
+                linkedin: personalInfo.socials?.linkedin || '',
+                medium: personalInfo.socials?.medium || ''
+            }
         });
     }
   }, [personalInfo, isSaving]);
@@ -298,7 +305,12 @@ export const AdminDashboard: React.FC = () => {
         let finalAvatarUrl = profileForm.avatarUrl;
         if (avatarFile) finalAvatarUrl = await uploadImage(avatarFile);
 
-        const payload = { ...profileForm, sub_headline: profileForm.subHeadline, avatar_url: finalAvatarUrl };
+        const payload = { 
+            ...profileForm, 
+            sub_headline: profileForm.subHeadline, 
+            avatar_url: finalAvatarUrl,
+            socials: profileForm.socials
+        };
         delete (payload as any).subHeadline; delete (payload as any).avatarUrl;
 
         if (profileId) await supabase.from('profile').update(payload).eq('id', profileId);
@@ -425,6 +437,37 @@ export const AdminDashboard: React.FC = () => {
                              </div>
                              <InputField label="Bio / Sub-headline" value={profileForm.subHeadline} onChange={(v: string) => setProfileForm(p => ({...p, subHeadline: v}))} type="textarea" />
                              <InputField label="Email Address" value={profileForm.email} onChange={(v: string) => setProfileForm(p => ({...p, email: v}))} />
+
+                             {/* Social Links Section */}
+                             <div className="border-t border-white/10 pt-6 mt-6">
+                                <h3 className="font-sketch text-lg text-dark-accent mb-4">Social Connections</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <InputField 
+                                        label="GitHub URL" 
+                                        placeholder="https://github.com/..."
+                                        value={profileForm.socials.github} 
+                                        onChange={(v: string) => setProfileForm(p => ({...p, socials: {...p.socials, github: v}}))} 
+                                    />
+                                    <InputField 
+                                        label="LinkedIn URL" 
+                                        placeholder="https://linkedin.com/in/..."
+                                        value={profileForm.socials.linkedin} 
+                                        onChange={(v: string) => setProfileForm(p => ({...p, socials: {...p.socials, linkedin: v}}))} 
+                                    />
+                                    <InputField 
+                                        label="Twitter / X URL" 
+                                        placeholder="https://twitter.com/..."
+                                        value={profileForm.socials.twitter} 
+                                        onChange={(v: string) => setProfileForm(p => ({...p, socials: {...p.socials, twitter: v}}))} 
+                                    />
+                                    <InputField 
+                                        label="Medium URL" 
+                                        placeholder="https://medium.com/@..."
+                                        value={profileForm.socials.medium} 
+                                        onChange={(v: string) => setProfileForm(p => ({...p, socials: {...p.socials, medium: v}}))} 
+                                    />
+                                </div>
+                             </div>
                         </div>
                     )}
 

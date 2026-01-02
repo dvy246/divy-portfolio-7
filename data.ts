@@ -10,7 +10,8 @@ export const PERSONAL_INFO = {
   socials: {
     github: "https://github.com",
     twitter: "https://twitter.com",
-    linkedin: "https://linkedin.com"
+    linkedin: "https://linkedin.com",
+    medium: "https://medium.com"
   }
 };
 
