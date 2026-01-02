@@ -78,7 +78,10 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             githubLink: p.github_link || "#"
         }));
         
-        setData(prev => ({ ...prev, projects: dbProjects.length > 0 ? dbProjects : prev.projects }));
+        // Only override if we actually got projects back, otherwise keep default/sample
+        if (dbProjects.length > 0) {
+            setData(prev => ({ ...prev, projects: dbProjects }));
+        }
       }
 
       // 3. Handle Resume Data
@@ -92,7 +95,9 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               description: r.description,
               tags: r.tags || []
           }));
-          setData(prev => ({ ...prev, resume: dbResume.length > 0 ? dbResume : prev.resume }));
+          if (dbResume.length > 0) {
+            setData(prev => ({ ...prev, resume: dbResume }));
+          }
       }
 
       // 4. Handle Blogs Data
@@ -103,7 +108,9 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               date: b.date,
               link: b.link
           }));
-          setData(prev => ({ ...prev, blogs: dbBlogs.length > 0 ? dbBlogs : prev.blogs }));
+          if (dbBlogs.length > 0) {
+            setData(prev => ({ ...prev, blogs: dbBlogs }));
+          }
       }
 
       // 5. Handle Certificates Data
@@ -116,7 +123,9 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               image: c.image_url || "https://picsum.photos/600/400?grayscale",
               link: c.link || "#"
           }));
-          setData(prev => ({ ...prev, certificates: dbCerts.length > 0 ? dbCerts : prev.certificates }));
+          if (dbCerts.length > 0) {
+            setData(prev => ({ ...prev, certificates: dbCerts }));
+          }
       }
 
     } catch (error) {

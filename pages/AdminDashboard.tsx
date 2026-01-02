@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, LogOut, CheckCircle, Layout, Edit3, Plus, Trash2, Database, Settings, Upload, X, Image as ImageIcon, Briefcase, GraduationCap, FileText, RefreshCw, Rss, AlertTriangle, ShieldAlert, Loader2, Award, Zap, ShieldCheck, ServerCrash } from 'lucide-react';
+import { Save, LogOut, CheckCircle, Layout, Edit3, Plus, Trash2, Database, Settings, Upload, Image as ImageIcon, Briefcase, Award, FileText, Zap, ShieldCheck, ServerCrash, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 import { supabase } from '../lib/supabase';
@@ -77,8 +77,7 @@ export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'projects' | 'resume' | 'blogs' | 'certificates' | 'settings'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
-
+  
   // --- Profile State ---
   const [profileId, setProfileId] = useState<number | null>(null);
   const [profileForm, setProfileForm] = useState({
@@ -103,17 +102,6 @@ export const AdminDashboard: React.FC = () => {
   });
   const [projectImageFile, setProjectImageFile] = useState<File | null>(null);
 
-  // --- Resume State ---
-  const [editingResume, setEditingResume] = useState<any | null>(null);
-  const [resumeForm, setResumeForm] = useState({
-      type: 'work',
-      title: '',
-      company: '',
-      period: '',
-      description: '',
-      tags: ''
-  });
-  
   // --- Certificates State ---
   const [editingCertificate, setEditingCertificate] = useState<any | null>(null);
   const [certificateForm, setCertificateForm] = useState({
@@ -125,11 +113,7 @@ export const AdminDashboard: React.FC = () => {
   });
   const [certificateImageFile, setCertificateImageFile] = useState<File | null>(null);
 
-  // --- Blogs / Medium State ---
-  const [mediumUsername, setMediumUsername] = useState('');
-  const [isSyncing, setIsSyncing] = useState(false);
-
-  // --- Settings State (Enhanced) ---
+  // --- Settings State ---
   const [dbUrl, setDbUrl] = useState('');
   const [dbKey, setDbKey] = useState('');
   const [verificationStatus, setVerificationStatus] = useState<'idle' | 'verifying' | 'success' | 'error'>('idle');
@@ -138,16 +122,18 @@ export const AdminDashboard: React.FC = () => {
   // AUTH CHECK
   useEffect(() => {
     const checkSession = async () => {
-      if (!supabase) return;
+      // If Supabase is not configured or user is not logged in, boot them out
+      if (!supabase) {
+          navigate('/login');
+          return;
+      }
       const { data: { session } } = await (supabase.auth as any).getSession();
       if (!session) {
-        setIsAuthenticated(false);
-      } else {
-        setIsAuthenticated(true);
+        navigate('/login');
       }
     };
     checkSession();
-  }, []);
+  }, [navigate]);
 
   // Load Initial Data
   useEffect(() => {
@@ -205,24 +191,16 @@ export const AdminDashboard: React.FC = () => {
       setTimeout(() => setShowSuccess(false), 2000);
   }
 
-  // --- SETTINGS LOGIC (SMART VALIDATION) ---
-
+  // --- SETTINGS LOGIC ---
   const validateAndCleanUrl = (url: string) => {
       let clean = url.trim();
-
-      // 1. Block Dashboard URLs
       if (clean.includes('supabase.com') && !clean.includes('supabase.co')) {
-          throw new Error("❌ Wrong URL! You pasted the Dashboard link. Please go to Settings > API and copy the 'Project URL' (it ends in .supabase.co).");
+          throw new Error("❌ Wrong URL! Do not use the Dashboard link. Use the Project URL from Settings > API.");
       }
-
-      // 2. Auto-Fix Protocol
       if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
           clean = 'https://' + clean;
       }
-
-      // 3. Remove Trailing Slash
       clean = clean.replace(/\/+$/, '');
-
       return clean;
   }
 
@@ -231,44 +209,21 @@ export const AdminDashboard: React.FC = () => {
       setVerificationMsg("Testing connection...");
 
       try {
-          // 1. Validate Inputs
           if (!dbUrl) throw new Error("Project URL is required.");
           if (!dbKey) throw new Error("API Key is required.");
           
           const cleanUrl = validateAndCleanUrl(dbUrl);
-          // Update the UI with the cleaned URL immediately so user sees the fix
           setDbUrl(cleanUrl); 
 
-          // 2. Create Temporary Client
           const tempClient = createClient(cleanUrl, dbKey.trim());
-
-          // 3. Execute Real Query
-          // We query the 'profile' table. Even if empty, it should return count or []
-          // using 'head: true' is lightweight.
           const { error } = await tempClient.from('profile').select('id', { count: 'exact', head: true });
 
-          if (error) {
-              // Analyze specific errors
-              if (error.message.includes("fetch") || error.message.includes("Network")) {
-                  throw new Error("Network Error: Could not reach the server. Check your internet or AdBlocker.");
-              }
-              if (error.code === 'PGRST301' || error.code === '401') {
-                   throw new Error("Authentication Failed: Your API Key appears to be invalid.");
-              }
-              if (error.code === '42P01') {
-                   // Table doesn't exist, but connection IS valid!
-                   setVerificationMsg("⚠️ Connection Successful, but 'profile' table is missing. You may need to run the SQL setup script.");
-                   setVerificationStatus('success');
-                   return;
-              }
-              
-              throw error; // Unknown error
+          if (error && error.code !== '42P01') {
+              throw new Error("Connection Failed: " + error.message);
           }
 
-          // 4. Success
           setVerificationStatus('success');
-          setVerificationMsg("✅ Connection Verified! You can now save.");
-
+          setVerificationMsg("✅ Connection Verified!");
       } catch (e: any) {
           setVerificationStatus('error');
           setVerificationMsg(e.message);
@@ -277,16 +232,14 @@ export const AdminDashboard: React.FC = () => {
 
   const handleSaveConnection = () => {
       if (verificationStatus !== 'success') return;
-      
       localStorage.setItem('REACT_APP_SUPABASE_URL', dbUrl);
       localStorage.setItem('REACT_APP_SUPABASE_ANON_KEY', dbKey);
-      
       showToast();
       setTimeout(() => window.location.reload(), 1000);
   };
 
   const handleDisconnect = () => {
-    if(confirm("Are you sure? This will disconnect the database and revert to Demo Mode.")) {
+    if(confirm("Disconnect Supabase? You will need to reconnect to access Admin Panel again.")) {
         localStorage.removeItem('REACT_APP_SUPABASE_URL');
         localStorage.removeItem('REACT_APP_SUPABASE_ANON_KEY');
         window.location.reload();
@@ -298,8 +251,7 @@ export const AdminDashboard: React.FC = () => {
   const handleProfileSave = async () => {
     setIsSaving(true);
     try {
-        if (!supabase) { alert("Demo Mode: Changes not saved."); setIsSaving(false); return; } 
-        if (!isAuthenticated) { alert("Security Error: Not logged in."); setIsSaving(false); return; }
+        if (!supabase) throw new Error("Not Connected");
         
         let finalAvatarUrl = profileForm.avatarUrl;
         if (avatarFile) finalAvatarUrl = await uploadImage(avatarFile);
@@ -323,7 +275,7 @@ export const AdminDashboard: React.FC = () => {
   const handleProjectSave = async () => {
      setIsSaving(true);
      try {
-         if(!supabase || !isAuthenticated) throw new Error("Not authenticated");
+         if(!supabase) throw new Error("Not Connected");
          let url = projectForm.image;
          if(projectImageFile) url = await uploadImage(projectImageFile);
          const payload = { ...projectForm, image_url: url, live_link: projectForm.liveLink, github_link: projectForm.githubLink, tags: projectForm.tags.split(',') };
@@ -336,7 +288,7 @@ export const AdminDashboard: React.FC = () => {
   const handleCertificateSave = async () => {
     setIsSaving(true);
     try {
-        if(!supabase || !isAuthenticated) throw new Error("Not authenticated");
+        if(!supabase) throw new Error("Not Connected");
         let url = certificateForm.image;
         if(certificateImageFile) url = await uploadImage(certificateImageFile);
         
@@ -348,20 +300,11 @@ export const AdminDashboard: React.FC = () => {
             image_url: url
         };
         
-        if(editingCertificate.id) {
-            await supabase.from('certificates').update(payload).eq('id', editingCertificate.id);
-        } else {
-            await supabase.from('certificates').insert([payload]);
-        }
+        if(editingCertificate.id) await supabase.from('certificates').update(payload).eq('id', editingCertificate.id);
+        else await supabase.from('certificates').insert([payload]);
         
-        await refreshData(); 
-        setEditingCertificate(null); 
-        showToast();
-    } catch(e: any) { 
-        alert(e.message); 
-    } finally { 
-        setIsSaving(false); 
-    }
+        await refreshData(); setEditingCertificate(null); showToast();
+    } catch(e: any) { alert(e.message); } finally { setIsSaving(false); }
  }
 
   // --- RENDER ---
@@ -369,29 +312,15 @@ export const AdminDashboard: React.FC = () => {
     <div className="min-h-screen bg-[#050505] text-white flex flex-col">
       <nav className="border-b border-white/10 px-6 py-4 flex justify-between items-center bg-[#0a0a0a]">
         <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full animate-pulse ${supabase ? 'bg-green-500' : 'bg-yellow-500'}`} />
+            <div className="w-3 h-3 rounded-full animate-pulse bg-green-500" />
             <span className="font-mono text-dark-accent font-bold">
-                {supabase ? 'LIVE_MODE' : 'DEMO_MODE'}
+                ADMIN_TERMINAL
             </span>
         </div>
         <button onClick={handleLogout} className="flex items-center gap-2 text-sm font-mono text-gray-400 hover:text-white transition-colors">
             <LogOut size={16} /> LOGOUT
         </button>
       </nav>
-
-      {/* Status Banners */}
-      {!supabase && (
-          <div className="bg-yellow-900/20 border-b border-yellow-600/30 p-2 text-center text-xs font-mono text-yellow-500 flex items-center justify-center gap-2">
-              <AlertTriangle size={14} />
-              <span>DEMO MODE ACTIVE: Changes will NOT be saved to database. Connect Supabase in Settings.</span>
-          </div>
-      )}
-      {supabase && !isAuthenticated && (
-          <div className="bg-red-900/20 border-b border-red-600/30 p-3 text-center text-xs font-mono text-red-500 flex items-center justify-center gap-2">
-              <ShieldAlert size={16} />
-              <span>SECURITY ALERT: You are connected but NOT logged in. Database policies will block saves. Please Logout and Login again.</span>
-          </div>
-      )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
@@ -401,8 +330,6 @@ export const AdminDashboard: React.FC = () => {
                     { id: 'profile', icon: Edit3, label: 'Profile' },
                     { id: 'projects', icon: Layout, label: 'Projects' },
                     { id: 'certificates', icon: Award, label: 'Certificates' },
-                    { id: 'resume', icon: Briefcase, label: 'Resume' },
-                    { id: 'blogs', icon: FileText, label: 'Blogs' },
                     { id: 'settings', icon: Settings, label: 'Connection' }
                 ].map(item => (
                     <button 
@@ -473,34 +400,13 @@ export const AdminDashboard: React.FC = () => {
                              <InputField label="Bio / Sub-headline" value={profileForm.subHeadline} onChange={(v: string) => setProfileForm(p => ({...p, subHeadline: v}))} type="textarea" />
                              <InputField label="Email Address" value={profileForm.email} onChange={(v: string) => setProfileForm(p => ({...p, email: v}))} />
 
-                             {/* Social Links Section */}
                              <div className="border-t border-white/10 pt-6 mt-6">
                                 <h3 className="font-sketch text-lg text-dark-accent mb-4">Social Connections</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <InputField 
-                                        label="GitHub URL" 
-                                        placeholder="https://github.com/..."
-                                        value={profileForm.socials.github} 
-                                        onChange={(v: string) => setProfileForm(p => ({...p, socials: {...p.socials, github: v}}))} 
-                                    />
-                                    <InputField 
-                                        label="LinkedIn URL" 
-                                        placeholder="https://linkedin.com/in/..."
-                                        value={profileForm.socials.linkedin} 
-                                        onChange={(v: string) => setProfileForm(p => ({...p, socials: {...p.socials, linkedin: v}}))} 
-                                    />
-                                    <InputField 
-                                        label="Twitter / X URL" 
-                                        placeholder="https://twitter.com/..."
-                                        value={profileForm.socials.twitter} 
-                                        onChange={(v: string) => setProfileForm(p => ({...p, socials: {...p.socials, twitter: v}}))} 
-                                    />
-                                    <InputField 
-                                        label="Medium URL" 
-                                        placeholder="https://medium.com/@..."
-                                        value={profileForm.socials.medium} 
-                                        onChange={(v: string) => setProfileForm(p => ({...p, socials: {...p.socials, medium: v}}))} 
-                                    />
+                                    <InputField label="GitHub URL" value={profileForm.socials.github} onChange={(v: string) => setProfileForm(p => ({...p, socials: {...p.socials, github: v}}))} />
+                                    <InputField label="LinkedIn URL" value={profileForm.socials.linkedin} onChange={(v: string) => setProfileForm(p => ({...p, socials: {...p.socials, linkedin: v}}))} />
+                                    <InputField label="Twitter / X URL" value={profileForm.socials.twitter} onChange={(v: string) => setProfileForm(p => ({...p, socials: {...p.socials, twitter: v}}))} />
+                                    <InputField label="Medium URL" value={profileForm.socials.medium} onChange={(v: string) => setProfileForm(p => ({...p, socials: {...p.socials, medium: v}}))} />
                                 </div>
                              </div>
                         </div>
@@ -536,7 +442,7 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                     )}
 
-                     {/* --- CERTIFICATES TAB (Full Impl) --- */}
+                     {/* --- CERTIFICATES TAB --- */}
                     {activeTab === 'certificates' && !editingCertificate && (
                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             <button onClick={() => { setEditingCertificate({}); setCertificateForm({ title: '', issuer: '', date: '', link: '', image: '' }) }} className="flex flex-col items-center justify-center h-40 border-2 border-dashed border-white/10 rounded-lg hover:border-dark-accent/50 hover:bg-dark-accent/5 transition-colors gap-2 group">
@@ -550,7 +456,7 @@ export const AdminDashboard: React.FC = () => {
                                         <p className="text-xs text-gray-500 font-mono mt-1">{c.issuer} | {c.date}</p>
                                     </div>
                                     <button onClick={() => { setEditingCertificate(c); setCertificateForm({ title: c.title, issuer: c.issuer, date: c.date, link: c.link, image: c.image }) }} className="text-xs bg-white/5 border border-white/20 py-1 text-center hover:bg-dark-accent hover:text-black hover:border-dark-accent transition-colors">
-                                        EDIT CREDENTIAL
+                                        EDIT
                                     </button>
                                 </div>
                             ))}
@@ -576,10 +482,10 @@ export const AdminDashboard: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="flex-1 space-y-4">
-                                    <InputField label="Certificate Title" value={certificateForm.title} onChange={(v: string) => setCertificateForm(p => ({...p, title: v}))} placeholder="e.g. AWS Certified Solutions Architect" />
+                                    <InputField label="Certificate Title" value={certificateForm.title} onChange={(v: string) => setCertificateForm(p => ({...p, title: v}))} />
                                     <div className="grid grid-cols-2 gap-4">
-                                        <InputField label="Issuer" value={certificateForm.issuer} onChange={(v: string) => setCertificateForm(p => ({...p, issuer: v}))} placeholder="e.g. Amazon Web Services" />
-                                        <InputField label="Date Issued" value={certificateForm.date} onChange={(v: string) => setCertificateForm(p => ({...p, date: v}))} placeholder="e.g. Nov 2023" />
+                                        <InputField label="Issuer" value={certificateForm.issuer} onChange={(v: string) => setCertificateForm(p => ({...p, issuer: v}))} />
+                                        <InputField label="Date Issued" value={certificateForm.date} onChange={(v: string) => setCertificateForm(p => ({...p, date: v}))} />
                                     </div>
                                 </div>
                             </div>
@@ -587,107 +493,72 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                     )}
 
-                    {/* --- RESUME & BLOGS (Simplified) --- */}
-                    {(activeTab === 'resume' || activeTab === 'blogs') && (
-                        <div className="text-center text-gray-500 py-10">
-                            (Section available in full implementation)
-                        </div>
-                    )}
-
-                    {/* --- SETTINGS TAB (COMPLETELY REFACTORED) --- */}
+                    {/* --- SETTINGS TAB --- */}
                     {activeTab === 'settings' && (
                         <div className="max-w-2xl mx-auto space-y-8">
-                             {/* Intro Box */}
                              <div className="flex items-start gap-4 p-4 bg-blue-900/10 border border-blue-500/20 rounded">
                                 <Database className="text-blue-400 mt-1" size={24} />
                                 <div className="text-sm text-blue-200">
-                                    <p className="font-bold mb-1">Connect Your Supabase Backend</p>
+                                    <p className="font-bold mb-1">Database Connection</p>
                                     <p className="opacity-70 leading-relaxed">
-                                        You need your <strong>Project URL</strong> and <strong>Anon Key</strong>. 
-                                        Find them in your Supabase Dashboard under <span className="text-white font-mono bg-white/10 px-1 rounded">Settings &gt; API</span>.
+                                        Update your Supabase credentials here. This will persist across all devices viewing this dashboard.
                                     </p>
                                 </div>
                              </div>
 
                              <div className="space-y-6">
-                                {/* URL Input */}
                                 <div>
-                                    <label className="flex items-center justify-between text-xs font-mono text-gray-400 uppercase mb-2">
-                                        <span>Project URL</span>
-                                        <span className="text-dark-accent lowercase opacity-70">Example: https://xyz.supabase.co</span>
-                                    </label>
+                                    <label className="flex items-center justify-between text-xs font-mono text-gray-400 uppercase mb-2">Project URL</label>
                                     <div className="relative">
                                         <input 
                                             type="text" 
                                             value={dbUrl} 
                                             onChange={(e) => setDbUrl(e.target.value)}
-                                            placeholder="https://your-project.supabase.co"
                                             className={`w-full bg-black border p-4 text-white outline-none rounded font-mono transition-colors ${verificationStatus === 'error' ? 'border-red-500/50 focus:border-red-500' : 'border-white/10 focus:border-dark-accent'}`}
                                         />
                                         {verificationStatus === 'success' && <CheckCircle className="absolute right-4 top-1/2 -translate-y-1/2 text-green-500" size={20} />}
                                     </div>
-                                    <p className="text-[10px] text-gray-600 mt-1">
-                                        Do NOT paste the dashboard URL (supabase.com/dashboard/...).
-                                    </p>
                                 </div>
 
-                                {/* Key Input */}
                                 <div>
-                                    <label className="flex items-center justify-between text-xs font-mono text-gray-400 uppercase mb-2">
-                                        <span>API Key (anon / public)</span>
-                                    </label>
-                                    <div className="relative">
-                                        <input 
-                                            type="password" 
-                                            value={dbKey} 
-                                            onChange={(e) => setDbKey(e.target.value)}
-                                            placeholder="eyJh..."
-                                            className="w-full bg-black border border-white/10 focus:border-dark-accent p-4 text-white outline-none rounded font-mono transition-colors"
-                                        />
-                                    </div>
+                                    <label className="flex items-center justify-between text-xs font-mono text-gray-400 uppercase mb-2">API Key</label>
+                                    <input 
+                                        type="password" 
+                                        value={dbKey} 
+                                        onChange={(e) => setDbKey(e.target.value)}
+                                        className="w-full bg-black border border-white/10 focus:border-dark-accent p-4 text-white outline-none rounded font-mono transition-colors"
+                                    />
                                 </div>
 
-                                {/* Validation Message Box */}
                                 <AnimatePresence mode='wait'>
                                     {verificationStatus === 'error' && (
                                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="bg-red-900/20 border border-red-500/30 p-4 rounded flex items-start gap-3 text-red-300 text-sm">
                                             <ServerCrash className="shrink-0 mt-0.5" size={18} />
-                                            <div>
-                                                <p className="font-bold mb-1">Connection Failed</p>
-                                                <p>{verificationMsg}</p>
-                                            </div>
+                                            <div><p className="font-bold mb-1">Connection Failed</p><p>{verificationMsg}</p></div>
                                         </motion.div>
                                     )}
                                     {verificationStatus === 'success' && (
                                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="bg-green-900/20 border border-green-500/30 p-4 rounded flex items-start gap-3 text-green-300 text-sm">
                                             <ShieldCheck className="shrink-0 mt-0.5" size={18} />
-                                            <div>
-                                                <p className="font-bold mb-1">Connection Verified</p>
-                                                <p>{verificationMsg}</p>
-                                            </div>
+                                            <div><p className="font-bold mb-1">Connection Verified</p><p>{verificationMsg}</p></div>
                                         </motion.div>
                                     )}
                                 </AnimatePresence>
 
-                                {/* Action Buttons */}
                                 <div className="pt-4 flex items-center justify-end gap-4 border-t border-white/10">
-                                     {supabase && (
-                                         <button onClick={handleDisconnect} className="mr-auto text-red-500 text-sm font-mono flex items-center gap-2 hover:text-red-400 transition-colors opacity-70 hover:opacity-100">
-                                             <Trash2 size={16} /> DISCONNECT
-                                         </button>
-                                     )}
+                                     <button onClick={handleDisconnect} className="mr-auto text-red-500 text-sm font-mono flex items-center gap-2 hover:text-red-400 transition-colors opacity-70 hover:opacity-100">
+                                         <Trash2 size={16} /> DISCONNECT
+                                     </button>
 
-                                     {/* 1. Verify Button */}
                                      <button 
                                         onClick={handleVerifyConnection}
                                         disabled={verificationStatus === 'verifying' || !dbUrl || !dbKey}
                                         className={`px-6 py-3 rounded font-bold font-mono text-sm flex items-center gap-2 border transition-all ${verificationStatus === 'success' ? 'border-green-500/50 text-green-500 bg-green-500/10' : 'border-white/20 hover:border-white text-white bg-white/5'}`}
                                      >
                                          {verificationStatus === 'verifying' ? <Loader2 className="animate-spin" size={16} /> : <Zap size={16} />}
-                                         {verificationStatus === 'success' ? 'RE-VERIFY' : 'TEST CONNECTION'}
+                                         {verificationStatus === 'success' ? 'RE-VERIFY' : 'TEST'}
                                      </button>
 
-                                     {/* 2. Save Button (Only enabled after success) */}
                                      <button 
                                         onClick={handleSaveConnection}
                                         disabled={verificationStatus !== 'success'}
@@ -702,7 +573,6 @@ export const AdminDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Success Toast */}
             <AnimatePresence>
                 {showSuccess && (
                     <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 50 }} className="fixed bottom-10 right-10 bg-green-500/10 border border-green-500 text-green-400 px-6 py-4 rounded-lg flex items-center gap-3 shadow-[0_0_30px_rgba(34,197,94,0.3)] z-50">
