@@ -293,8 +293,7 @@ export const AdminDashboard: React.FC = () => {
     }
   };
 
-  // --- GENERIC SAVE HANDLERS (Simulated for brevity, logic maintained from previous) ---
-  // (In a real refactor, these would be abstracted, but keeping inline for file integrity)
+  // --- SAVE HANDLERS ---
   
   const handleProfileSave = async () => {
     setIsSaving(true);
@@ -321,7 +320,6 @@ export const AdminDashboard: React.FC = () => {
     } catch (e: any) { alert(e.message); } finally { setIsSaving(false); }
   };
 
-  // ... (Keeping other handlers like Projects, Resume, Certificates largely same logic but compacted for space in this specific answer focus)
   const handleProjectSave = async () => {
      setIsSaving(true);
      try {
@@ -334,6 +332,37 @@ export const AdminDashboard: React.FC = () => {
          await refreshData(); setEditingProject(null); showToast();
      } catch(e: any) { alert(e.message); } finally { setIsSaving(false); }
   }
+
+  const handleCertificateSave = async () => {
+    setIsSaving(true);
+    try {
+        if(!supabase || !isAuthenticated) throw new Error("Not authenticated");
+        let url = certificateForm.image;
+        if(certificateImageFile) url = await uploadImage(certificateImageFile);
+        
+        const payload = { 
+            title: certificateForm.title,
+            issuer: certificateForm.issuer,
+            date: certificateForm.date,
+            link: certificateForm.link,
+            image_url: url
+        };
+        
+        if(editingCertificate.id) {
+            await supabase.from('certificates').update(payload).eq('id', editingCertificate.id);
+        } else {
+            await supabase.from('certificates').insert([payload]);
+        }
+        
+        await refreshData(); 
+        setEditingCertificate(null); 
+        showToast();
+    } catch(e: any) { 
+        alert(e.message); 
+    } finally { 
+        setIsSaving(false); 
+    }
+ }
 
   // --- RENDER ---
   return (
@@ -405,6 +434,12 @@ export const AdminDashboard: React.FC = () => {
                         <div className="flex gap-2">
                              <button onClick={() => setEditingProject(null)} className="px-4 py-2 border border-white/20 hover:bg-white/10 rounded">Cancel</button>
                              <button onClick={handleProjectSave} className="px-6 py-2 bg-dark-accent text-black font-bold font-sketch rounded flex items-center gap-2">SAVE</button>
+                        </div>
+                    )}
+                    {activeTab === 'certificates' && editingCertificate && (
+                        <div className="flex gap-2">
+                             <button onClick={() => setEditingCertificate(null)} className="px-4 py-2 border border-white/20 hover:bg-white/10 rounded">Cancel</button>
+                             <button onClick={handleCertificateSave} className="px-6 py-2 bg-dark-accent text-black font-bold font-sketch rounded flex items-center gap-2">SAVE</button>
                         </div>
                     )}
                 </header>
@@ -501,10 +536,54 @@ export const AdminDashboard: React.FC = () => {
                         </div>
                     )}
 
-                     {/* --- CERTIFICATES TAB (Simplified for this snippet) --- */}
-                    {activeTab === 'certificates' && (
-                        <div className="text-center text-gray-500 py-10">
-                            (Certificate editing available in full implementation)
+                     {/* --- CERTIFICATES TAB (Full Impl) --- */}
+                    {activeTab === 'certificates' && !editingCertificate && (
+                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <button onClick={() => { setEditingCertificate({}); setCertificateForm({ title: '', issuer: '', date: '', link: '', image: '' }) }} className="flex flex-col items-center justify-center h-40 border-2 border-dashed border-white/10 rounded-lg hover:border-dark-accent/50 hover:bg-dark-accent/5 transition-colors gap-2 group">
+                                <Plus size={32} className="text-gray-600 group-hover:text-dark-accent" />
+                                <span className="text-sm font-mono text-gray-500">Add Certificate</span>
+                            </button>
+                            {certificates.map(c => (
+                                <div key={c.id} className="relative group border border-white/10 rounded-lg bg-black h-40 flex flex-col justify-between p-4 hover:border-dark-accent/50 transition-colors">
+                                    <div>
+                                        <h3 className="font-bold font-sketch text-lg leading-tight">{c.title}</h3>
+                                        <p className="text-xs text-gray-500 font-mono mt-1">{c.issuer} | {c.date}</p>
+                                    </div>
+                                    <button onClick={() => { setEditingCertificate(c); setCertificateForm({ title: c.title, issuer: c.issuer, date: c.date, link: c.link, image: c.image }) }} className="text-xs bg-white/5 border border-white/20 py-1 text-center hover:bg-dark-accent hover:text-black hover:border-dark-accent transition-colors">
+                                        EDIT CREDENTIAL
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {activeTab === 'certificates' && editingCertificate && (
+                        <div className="grid gap-6">
+                            <div className="flex gap-6 items-start">
+                                <div className="space-y-3">
+                                    <label className="text-xs font-mono text-gray-500 uppercase block">Certificate Image</label>
+                                    <div className="relative group w-40 h-28 border-2 border-dashed border-white/20 bg-black overflow-hidden flex items-center justify-center">
+                                        <img 
+                                            src={certificateImageFile ? URL.createObjectURL(certificateImageFile) : certificateForm.image} 
+                                            alt="Preview" 
+                                            className="w-full h-full object-cover" 
+                                            onError={(e) => { e.currentTarget.style.display='none' }}
+                                        />
+                                        <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                            <Upload size={24} className="text-white" />
+                                            <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && setCertificateImageFile(e.target.files[0])} />
+                                        </label>
+                                        {!certificateForm.image && !certificateImageFile && <ImageIcon className="text-gray-700" />}
+                                    </div>
+                                </div>
+                                <div className="flex-1 space-y-4">
+                                    <InputField label="Certificate Title" value={certificateForm.title} onChange={(v: string) => setCertificateForm(p => ({...p, title: v}))} placeholder="e.g. AWS Certified Solutions Architect" />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <InputField label="Issuer" value={certificateForm.issuer} onChange={(v: string) => setCertificateForm(p => ({...p, issuer: v}))} placeholder="e.g. Amazon Web Services" />
+                                        <InputField label="Date Issued" value={certificateForm.date} onChange={(v: string) => setCertificateForm(p => ({...p, date: v}))} placeholder="e.g. Nov 2023" />
+                                    </div>
+                                </div>
+                            </div>
+                            <InputField label="Verification Link" value={certificateForm.link} onChange={(v: string) => setCertificateForm(p => ({...p, link: v}))} />
                         </div>
                     )}
 

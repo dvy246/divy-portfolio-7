@@ -1,62 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Safe environment variable retrieval with aggressive trimming
+// Helper to find the key from any possible source
 const getEnv = (key: string) => {
-  let value = undefined;
-
-  // 1. Check localStorage first for runtime overrides (Priority)
-  try {
-    if (typeof localStorage !== 'undefined') {
-      const localVal = localStorage.getItem(key);
-      if (localVal) value = localVal;
-    }
-  } catch (e) {}
-
-  // 2. Try Vite's import.meta.env if not found in local storage
-  if (!value) {
-    try {
-      // @ts-ignore
-      if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-        // @ts-ignore
-        value = import.meta.env[key];
-      }
-    } catch (e) {}
+  // 1. Check Vite Environment Variables (The Standard Way)
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+    // @ts-ignore
+    return import.meta.env[key];
   }
-
-  // 3. Try process.env
-  if (!value) {
-    try {
-      if (typeof process !== 'undefined' && process.env) {
-        value = process.env[key];
-      }
-    } catch (e) {}
+  // 2. Check LocalStorage (The Admin Dashboard Way)
+  if (typeof localStorage !== 'undefined') {
+    return localStorage.getItem(key);
   }
-
-  return value ? value.trim() : undefined;
+  return undefined;
 };
 
-const supabaseUrl = getEnv('REACT_APP_SUPABASE_URL');
-const supabaseKey = getEnv('REACT_APP_SUPABASE_ANON_KEY');
+// Check for VITE_ prefix (Priority) or REACT_APP_ (Fallback)
+const supabaseUrl = getEnv('VITE_SUPABASE_URL') || getEnv('REACT_APP_SUPABASE_URL');
+const supabaseKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('REACT_APP_SUPABASE_ANON_KEY');
 
-const createSafeClient = () => {
-  if (!supabaseUrl || !supabaseKey) return null;
-
-  try {
-    // strict validation to prevent app crash on garbage URLs
-    const urlObj = new URL(supabaseUrl);
-    
-    // Ensure it's a valid protocol to avoid network errors later
-    if (!['http:', 'https:'].includes(urlObj.protocol)) {
-        console.warn("Supabase URL must use http or https protocol.");
-        return null;
-    }
-
-    return createClient(supabaseUrl, supabaseKey);
-  } catch (error) {
-    console.error("Invalid Supabase Configuration. Falling back to Demo Mode.", error);
-    // Return null instead of crashing, allowing the app to render in read-only/demo mode
-    return null;
-  }
-}
-
-export const supabase = createSafeClient();
+export const supabase = (supabaseUrl && supabaseKey) 
+  ? createClient(supabaseUrl, supabaseKey) 
+  : null;
