@@ -56,7 +56,12 @@ export const Projects: React.FC = () => {
             const isHovered = hoveredProject === project.id;
 
             return (
-              <div key={project.id} className="min-h-[450px]">
+              <div 
+                  key={project.id} 
+                  className="min-h-[450px]"
+                  onMouseEnter={() => setHoveredProject(project.id)}
+                  onMouseLeave={() => setHoveredProject(null)}
+              >
                 <CardContainer className="inter-var w-full h-full" containerClassName="w-full h-full">
                     {!isRevealed ? (
                         // --- LOCKED STATE (3D) ---
@@ -69,7 +74,7 @@ export const Projects: React.FC = () => {
 
                              <div className="absolute inset-0 bg-grid-dark opacity-20" />
                              
-                             {/* Hover Electric Effect */}
+                             {/* Hover Electric Effect - OPTIMIZED */}
                              {isHovered && <ElectricOverlay className="opacity-50" />}
 
                              <div onClick={() => handleDecrypt(project.id)} className="cursor-pointer w-full h-full flex flex-col items-center justify-center">

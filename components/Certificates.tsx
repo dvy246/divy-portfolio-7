@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ExternalLink, Award, Calendar } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
@@ -7,6 +7,7 @@ import { ElectricOverlay } from './ElectricOverlay';
 
 export const Certificates: React.FC = () => {
   const { certificates } = usePortfolio();
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
 
   return (
     <section id="certificates" className="py-24 px-4 bg-light-bg dark:bg-dark-bg relative overflow-hidden">
@@ -30,14 +31,21 @@ export const Certificates: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {certificates.map((cert) => (
-                    <div key={cert.id} className="h-full">
+                    <div 
+                        key={cert.id} 
+                        className="h-full"
+                        onMouseEnter={() => setHoveredId(cert.id)}
+                        onMouseLeave={() => setHoveredId(null)}
+                    >
                         <CardContainer className="inter-var w-full h-full" containerClassName="w-full h-full">
                             <CardBody className="bg-white/5 dark:bg-[#0a0a0a] relative group/card border-2 border-dashed border-light-text/10 dark:border-dark-text/20 w-full h-auto rounded-xl overflow-hidden hover:border-light-accent dark:hover:border-dark-accent dark:hover:shadow-[0_0_30px_rgba(41,216,255,0.2)] transition-colors">
                                 
-                                {/* THUNDER GLOW EFFECT (Only visible on hover) */}
-                                <div className="absolute inset-0 opacity-0 group-hover/card:opacity-100 transition-opacity duration-300 z-10 pointer-events-none">
-                                    <ElectricOverlay />
-                                </div>
+                                {/* THUNDER GLOW EFFECT (Only visible on hover) - OPTIMIZED */}
+                                {hoveredId === cert.id && (
+                                    <div className="absolute inset-0 opacity-100 transition-opacity duration-300 z-10 pointer-events-none">
+                                        <ElectricOverlay />
+                                    </div>
+                                )}
 
                                 {/* Image Section */}
                                 <CardItem translateZ="50" className="w-full h-48 relative border-b border-light-text/10 dark:border-dark-text/10">
