@@ -131,7 +131,7 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                 <img 
                     src={personalInfo.avatarUrl} 
                     alt="Avatar" 
-                    className={`w-full h-full object-cover transition-all duration-500 ${isHoveringAvatar ? 'grayscale-0 scale-110' : 'filter grayscale scale-100'}`}
+                    className={`w-full h-full object-cover object-top transition-all duration-500 ${isHoveringAvatar ? 'scale-110' : 'scale-100'}`}
                 />
                 <motion.div 
                     className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-400/10 to-transparent z-30"
