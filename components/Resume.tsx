@@ -41,7 +41,9 @@ export const Resume: React.FC = () => {
             
             {/* Download Resume Button */}
             <motion.a
-                href="#"
+                href="https://drive.google.com/drive/folders/1nimDECO2nPXoF-RrortP7G7Glos8ixKJ?usp=drive_link"
+                target="_blank"
+                rel="noopener noreferrer"
                 whileHover={{ scale: 1.05, rotate: 5 }}
                 whileTap={{ scale: 0.95 }}
                 className="absolute right-0 top-0 hidden md:flex items-center gap-2 px-4 py-2 border-2 border-dashed border-light-accent dark:border-dark-accent text-sm font-mono font-bold text-light-accent dark:text-dark-accent bg-light-bg dark:bg-dark-bg"

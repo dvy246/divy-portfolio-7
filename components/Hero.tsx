@@ -74,15 +74,14 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
       }
   };
 
-  // Hologram Glitch Keyframes
+  // Hologram Glitch Keyframes - Affects CONTAINER only, not the image quality
   const glitchVariants: Variants = {
       hidden: { opacity: 0 },
       visible: {
-          opacity: [0, 1, 0.5, 1, 0, 1],
-          skewX: [0, 10, -10, 0, 5, 0],
-          scale: [0.9, 1.1, 0.95, 1],
-          filter: ["hue-rotate(0deg)", "hue-rotate(90deg)", "hue-rotate(0deg)"],
-          transition: { duration: 0.8, ease: "linear" }
+          opacity: 1,
+          skewX: [0, 2, -2, 0], // Reduced skew for cleaner look
+          scale: [0.95, 1],
+          transition: { duration: 0.8, ease: "circOut" }
       },
       hover: {
           scale: 1.05
@@ -98,10 +97,9 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
 
       <div className="max-w-5xl w-full flex flex-col items-center gap-12 relative z-10">
         
-        {/* CLEAN LAYOUT: No Box Frame, just content */}
         <div className="flex flex-col items-center relative z-10">
             
-            {/* AVATAR: HOLOGRAPHIC GLITCH */}
+            {/* AVATAR CONTAINER */}
             <motion.div
                 variants={glitchVariants}
                 initial="hidden"
@@ -110,41 +108,33 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                 onHoverStart={() => setIsHoveringAvatar(true)}
                 onHoverEnd={() => setIsHoveringAvatar(false)}
             >
-                {/* 1. The Storm/Lightning Layer (Behind) */}
+                {/* LAYER 0: The Storm/Lightning Layer (Behind) */}
                 <CircularStorm isHovering={isHoveringAvatar} />
 
-                {/* 2. The Back Glow */}
+                {/* LAYER 0: The Back Glow */}
                 <motion.div 
-                    animate={{ opacity: isHoveringAvatar ? 1 : 0.6, scale: isHoveringAvatar ? 1.2 : 1 }} 
-                    transition={{ duration: 1.5, repeat: Infinity, repeatType: "reverse" }}
-                    className="absolute inset-0 bg-cyan-500/30 blur-[60px] rounded-full z-0" 
+                    animate={{ opacity: isHoveringAvatar ? 0.8 : 0.4 }} 
+                    className="absolute inset-0 bg-cyan-500/20 blur-[50px] rounded-full z-0" 
                 />
                 
-                {/* 3. The Rotating Gradient Ring (Outer Border) */}
+                {/* LAYER 1: The Rotating Gradient Ring (Outer Border) - Behind Image */}
                 <motion.div
-                    className="absolute -inset-[3px] rounded-full z-20 pointer-events-none"
+                    className="absolute -inset-[3px] rounded-full z-10 pointer-events-none"
                     style={{ background: "conic-gradient(from 0deg, transparent 0%, #00FFFF 50%, transparent 100%)" }}
                     animate={{ rotate: 360 }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                 />
-                
-                {/* 4. Black Mask behind image */}
-                <div className="absolute inset-[2px] bg-[#050505] rounded-full z-10" />
 
-                {/* 5. The Image Container (Strictly clipped) */}
-                <div className={`absolute inset-[6px] rounded-full overflow-hidden relative z-10 shadow-2xl bg-black`}>
+                {/* LAYER 2: The Image Container (FRONT) */}
+                {/* Note: Inset-1 ensures the ring behind shows through slightly as a border */}
+                <div className="absolute inset-1 rounded-full overflow-hidden z-20 bg-[#050505] border-2 border-white/5">
                     <img 
                         src={personalInfo.avatarUrl} 
-                        alt="Avatar" 
-                        className={`w-full h-full object-cover object-center transition-all duration-500 ${isHoveringAvatar ? 'scale-110' : 'scale-100'}`}
+                        alt="Profile" 
+                        className="w-full h-full object-cover object-top opacity-100"
+                        style={{ filter: 'none' }} // Explicitly disable filters
                     />
-                    
-                    {/* Scanner Effect Overlay */}
-                    <motion.div 
-                        className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-400/10 to-transparent z-20 pointer-events-none"
-                        animate={{ top: ['-100%', '200%'] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
-                    />
+                    {/* NO OVERLAYS HERE. The image face is now unobstructed. */}
                 </div>
             </motion.div>
 
