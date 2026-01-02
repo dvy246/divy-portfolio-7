@@ -6,12 +6,12 @@ export const PERSONAL_INFO = {
   headline: "Hey, I'm Divy.",
   subHeadline: "I build data science, GenAI, and agentic AI systems.",
   avatarUrl: "/profile.jpg", // Make sure to save your photo as public/profile.jpg
-  email: "hello@divyyadav.com",
+  email: "yadavdipu296@gmail.com",
   socials: {
-    github: "https://github.com",
-    twitter: "https://twitter.com",
-    linkedin: "https://linkedin.com",
-    medium: "https://medium.com"
+    github: "https://github.com/dvy246",
+    twitter: "https://x.com/aiwithme0001",
+    linkedin: "https://www.linkedin.com/in/divyyadav/",
+    medium: "https://medium.com/@yadavdipu296"
   }
 };
 

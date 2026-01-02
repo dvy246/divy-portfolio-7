@@ -110,34 +110,41 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                 onHoverStart={() => setIsHoveringAvatar(true)}
                 onHoverEnd={() => setIsHoveringAvatar(false)}
             >
+                {/* 1. The Storm/Lightning Layer (Behind) */}
                 <CircularStorm isHovering={isHoveringAvatar} />
 
+                {/* 2. The Back Glow */}
                 <motion.div 
-                animate={{ opacity: isHoveringAvatar ? 1 : 0.6, scale: isHoveringAvatar ? 1.2 : 1 }} 
-                transition={{ duration: 1.5, repeat: Infinity, repeatType: "reverse" }}
-                className="absolute inset-0 bg-cyan-500/30 blur-[60px] rounded-full z-0" 
+                    animate={{ opacity: isHoveringAvatar ? 1 : 0.6, scale: isHoveringAvatar ? 1.2 : 1 }} 
+                    transition={{ duration: 1.5, repeat: Infinity, repeatType: "reverse" }}
+                    className="absolute inset-0 bg-cyan-500/30 blur-[60px] rounded-full z-0" 
                 />
                 
+                {/* 3. The Rotating Gradient Ring (Outer Border) */}
                 <motion.div
-                className="absolute -inset-[3px] rounded-full z-10"
-                style={{ background: "conic-gradient(from 0deg, transparent 0%, #00FFFF 50%, transparent 100%)" }}
-                animate={{ rotate: 360 }}
-                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    className="absolute -inset-[3px] rounded-full z-20 pointer-events-none"
+                    style={{ background: "conic-gradient(from 0deg, transparent 0%, #00FFFF 50%, transparent 100%)" }}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
                 />
                 
+                {/* 4. Black Mask behind image */}
                 <div className="absolute inset-[2px] bg-[#050505] rounded-full z-10" />
 
-                <div className={`absolute inset-[6px] rounded-full overflow-hidden relative z-20 shadow-2xl bg-black flex items-center justify-center`}>
-                <img 
-                    src={personalInfo.avatarUrl} 
-                    alt="Avatar" 
-                    className={`max-w-full max-h-full object-contain transition-all duration-500 ${isHoveringAvatar ? 'scale-110' : 'scale-100'}`}
-                />
-                <motion.div 
-                    className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-400/10 to-transparent z-30"
-                    animate={{ top: ['-100%', '200%'] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
-                />
+                {/* 5. The Image Container (Strictly clipped) */}
+                <div className={`absolute inset-[6px] rounded-full overflow-hidden relative z-10 shadow-2xl bg-black`}>
+                    <img 
+                        src={personalInfo.avatarUrl} 
+                        alt="Avatar" 
+                        className={`w-full h-full object-cover object-center transition-all duration-500 ${isHoveringAvatar ? 'scale-110' : 'scale-100'}`}
+                    />
+                    
+                    {/* Scanner Effect Overlay */}
+                    <motion.div 
+                        className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-400/10 to-transparent z-20 pointer-events-none"
+                        animate={{ top: ['-100%', '200%'] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
+                    />
                 </div>
             </motion.div>
 
