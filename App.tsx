@@ -4,6 +4,7 @@ import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { Skills } from './components/Skills';
 import { Projects } from './components/Projects';
+import { Certificates } from './components/Certificates';
 import { Blogs } from './components/Blogs';
 import { Contact } from './components/Contact';
 import { CustomCursor } from './components/CustomCursor';
@@ -24,6 +25,7 @@ const MainPortfolio: React.FC<{ startHeroAnim: boolean }> = ({ startHeroAnim }) 
         <Hero startAnimation={startHeroAnim} />
         <Skills />
         <Projects />
+        <Certificates />
         <Resume />
         <Blogs />
         <Contact />

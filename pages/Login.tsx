@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Fingerprint, ArrowLeft } from 'lucide-react';
+import { Lock, Fingerprint, ArrowLeft, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
@@ -9,12 +9,14 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isNetworkError, setIsNetworkError] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setIsNetworkError(false);
 
     // Fallback mode logic for demo since Supabase might not be connected
     if (!supabase) {
@@ -27,17 +29,33 @@ export const Login: React.FC = () => {
         return;
     }
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await (supabase.auth as any).signInWithPassword({
       email,
       password,
     });
 
     if (error) {
-      setError(error.message);
+      let errorMessage = error.message;
+      
+      // Detect and translate connection issues
+      if (errorMessage.includes('NetworkError') || errorMessage.includes('Failed to fetch')) {
+        setIsNetworkError(true);
+        errorMessage = "Connection Failed: Unable to reach database. This usually happens if the Project URL is incorrect (e.g. using the Dashboard URL) or an AdBlocker is blocking requests.";
+      }
+      
+      setError(errorMessage);
     } else {
       navigate('/admin');
     }
     setLoading(false);
+  };
+
+  const handleResetConnection = () => {
+      if (confirm("This will clear your saved Supabase URL and Key. You will revert to Demo Mode. Continue?")) {
+        localStorage.removeItem('REACT_APP_SUPABASE_URL');
+        localStorage.removeItem('REACT_APP_SUPABASE_ANON_KEY');
+        window.location.reload();
+      }
   };
 
   return (
@@ -88,8 +106,22 @@ export const Login: React.FC = () => {
                 </div>
 
                 {error && (
-                    <div className="p-3 bg-red-900/20 border border-red-500/50 text-red-400 text-sm font-mono">
-                        ERR: {error}
+                    <div className="p-3 bg-red-900/20 border border-red-500/50 text-red-400 text-sm font-mono flex flex-col gap-2">
+                        <div className="flex items-start gap-2">
+                            <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                            <span>{error}</span>
+                        </div>
+                        
+                        {isNetworkError && (
+                            <button 
+                                type="button"
+                                onClick={handleResetConnection}
+                                className="mt-2 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-300 py-2 px-3 rounded border border-red-500/30 flex items-center justify-center gap-2 transition-colors"
+                            >
+                                <RefreshCw size={12} />
+                                RESET CONNECTION SETTINGS
+                            </button>
+                        )}
                     </div>
                 )}
 

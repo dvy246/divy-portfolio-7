@@ -17,6 +17,7 @@ export const PERSONAL_INFO = {
 export const NAVIGATION_LINKS = [
   { name: "Projects", href: "#projects" },
   { name: "Stack", href: "#skills" },
+  { name: "Certificates", href: "#certificates" },
   { name: "Experience", href: "#resume" },
   { name: "Writing", href: "#blogs" },
 ];
@@ -102,6 +103,33 @@ export const PROJECTS = [
     image: "https://picsum.photos/600/400?random=13",
     liveLink: "#",
     githubLink: "#"
+  }
+];
+
+export const CERTIFICATES = [
+  {
+    id: 1,
+    title: "TensorFlow Developer Certificate",
+    issuer: "Google",
+    date: "2023",
+    image: "https://picsum.photos/600/400?random=20",
+    link: "#"
+  },
+  {
+    id: 2,
+    title: "Deep Learning Specialization",
+    issuer: "Coursera / DeepLearning.AI",
+    date: "2022",
+    image: "https://picsum.photos/600/400?random=21",
+    link: "#"
+  },
+  {
+    id: 3,
+    title: "AWS Certified Machine Learning",
+    issuer: "Amazon Web Services",
+    date: "2021",
+    image: "https://picsum.photos/600/400?random=22",
+    link: "#"
   }
 ];
 

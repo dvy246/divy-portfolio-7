@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Save, LogOut, CheckCircle, Layout, Edit3, Plus, Trash2, Database, Settings, Upload, X, Image as ImageIcon, Briefcase, GraduationCap, FileText, RefreshCw, Rss, AlertTriangle, ShieldAlert, Loader2 } from 'lucide-react';
+import { Save, LogOut, CheckCircle, Layout, Edit3, Plus, Trash2, Database, Settings, Upload, X, Image as ImageIcon, Briefcase, GraduationCap, FileText, RefreshCw, Rss, AlertTriangle, ShieldAlert, Loader2, Award } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePortfolio } from '../context/PortfolioContext';
 import { supabase } from '../lib/supabase';
@@ -69,9 +69,9 @@ const InputField = ({ label, value, onChange, type="text", placeholder="", optio
 );
 
 export const AdminDashboard: React.FC = () => {
-  const { personalInfo, projects, resume, blogs, refreshData } = usePortfolio();
+  const { personalInfo, projects, resume, blogs, certificates, refreshData } = usePortfolio();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'profile' | 'projects' | 'resume' | 'blogs' | 'settings'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'projects' | 'resume' | 'blogs' | 'certificates' | 'settings'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(true); // Default true to avoid flash, check in effect
@@ -109,6 +109,17 @@ export const AdminDashboard: React.FC = () => {
       description: '',
       tags: ''
   });
+  
+  // --- Certificates State ---
+  const [editingCertificate, setEditingCertificate] = useState<any | null>(null);
+  const [certificateForm, setCertificateForm] = useState({
+      title: '',
+      issuer: '',
+      date: '',
+      link: '',
+      image: ''
+  });
+  const [certificateImageFile, setCertificateImageFile] = useState<File | null>(null);
 
   // --- Blogs / Medium State ---
   const [mediumUsername, setMediumUsername] = useState('');
@@ -123,7 +134,7 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     const checkSession = async () => {
       if (!supabase) return;
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await (supabase.auth as any).getSession();
       if (!session) {
         setIsAuthenticated(false);
       } else {
@@ -166,7 +177,7 @@ export const AdminDashboard: React.FC = () => {
 
   // --- Actions ---
   const handleLogout = async () => {
-    if (supabase) await supabase.auth.signOut();
+    if (supabase) await (supabase.auth as any).signOut();
     navigate('/login');
   };
 
@@ -305,6 +316,71 @@ export const AdminDashboard: React.FC = () => {
       if (!confirm("Delete this project?")) return;
       if (supabase) {
           const { error } = await supabase.from('projects').delete().eq('id', id);
+          if (error) alert(error.message);
+          else await refreshData();
+      }
+  };
+
+  // --- CERTIFICATE HANDLERS ---
+  const openCertificateEditor = (cert?: any) => {
+    if (cert) {
+        setEditingCertificate(cert);
+        setCertificateForm({
+            title: cert.title,
+            issuer: cert.issuer,
+            date: cert.date,
+            link: cert.link,
+            image: cert.image
+        });
+    } else {
+        setEditingCertificate({});
+        setCertificateForm({ title: '', issuer: '', date: '', link: '', image: '' });
+    }
+    setCertificateImageFile(null);
+  };
+
+  const handleCertificateSave = async () => {
+    setIsSaving(true);
+    try {
+        if (!supabase) { 
+             alert("Demo Mode: Changes not saved.");
+             setIsSaving(false); return;
+        }
+        if (!isAuthenticated) {
+            alert("Please log in to save changes.");
+            setIsSaving(false); return;
+        }
+
+        let finalImageUrl = certificateForm.image;
+        if (certificateImageFile) {
+            finalImageUrl = await uploadImage(certificateImageFile);
+        }
+
+        const payload = {
+            title: certificateForm.title,
+            issuer: certificateForm.issuer,
+            date: certificateForm.date,
+            link: certificateForm.link,
+            image_url: finalImageUrl
+        };
+
+        if (editingCertificate.id) {
+            const { error } = await supabase.from('certificates').update(payload).eq('id', editingCertificate.id);
+            if (error) throw error;
+        } else {
+            const { error } = await supabase.from('certificates').insert([payload]);
+            if (error) throw error;
+        }
+        await refreshData();
+        setEditingCertificate(null);
+        showToast();
+    } catch (e: any) { alert("Error: " + e.message); } finally { setIsSaving(false); }
+  };
+
+  const handleDeleteCertificate = async (id: number) => {
+      if (!confirm("Delete this certificate?")) return;
+      if (supabase) {
+          const { error } = await supabase.from('certificates').delete().eq('id', id);
           if (error) alert(error.message);
           else await refreshData();
       }
@@ -457,7 +533,7 @@ export const AdminDashboard: React.FC = () => {
         // 3. Attempt a LIGHTWEIGHT Verification (Auth Session Check)
         // We use auth.getSession() because it doesn't depend on any specific tables existing.
         // It simply checks if the URL and Key are valid enough to reach the Auth service.
-        const { error } = await tempClient.auth.getSession();
+        const { error } = await (tempClient.auth as any).getSession();
 
         // Analyze Error
         if (error) {
@@ -534,6 +610,9 @@ export const AdminDashboard: React.FC = () => {
                 <button onClick={() => setActiveTab('projects')} className={`w-full text-left px-4 py-3 rounded font-mono text-sm flex items-center gap-3 transition-colors ${activeTab === 'projects' ? 'bg-dark-accent/10 text-dark-accent border border-dark-accent/30' : 'text-gray-500 hover:text-white'}`}>
                     <Layout size={16} /> Projects
                 </button>
+                <button onClick={() => setActiveTab('certificates')} className={`w-full text-left px-4 py-3 rounded font-mono text-sm flex items-center gap-3 transition-colors ${activeTab === 'certificates' ? 'bg-dark-accent/10 text-dark-accent border border-dark-accent/30' : 'text-gray-500 hover:text-white'}`}>
+                    <Award size={16} /> Certificates
+                </button>
                 <button onClick={() => setActiveTab('resume')} className={`w-full text-left px-4 py-3 rounded font-mono text-sm flex items-center gap-3 transition-colors ${activeTab === 'resume' ? 'bg-dark-accent/10 text-dark-accent border border-dark-accent/30' : 'text-gray-500 hover:text-white'}`}>
                     <Briefcase size={16} /> Resume
                 </button>
@@ -553,6 +632,7 @@ export const AdminDashboard: React.FC = () => {
                     <h1 className="text-3xl font-sketch font-bold">
                         {activeTab === 'profile' && 'Edit Profile'}
                         {activeTab === 'projects' && (editingProject ? (editingProject.id ? 'Edit Project' : 'New Project') : 'Projects')}
+                        {activeTab === 'certificates' && (editingCertificate ? (editingCertificate.id ? 'Edit Certificate' : 'New Certificate') : 'Certificates')}
                         {activeTab === 'resume' && (editingResume ? (editingResume.id ? 'Edit Entry' : 'New Entry') : 'Resume / History')}
                         {activeTab === 'blogs' && 'Blog Posts'}
                         {activeTab === 'settings' && 'Connection'}
@@ -570,6 +650,15 @@ export const AdminDashboard: React.FC = () => {
                              <button onClick={() => setEditingProject(null)} className="px-4 py-2 border border-white/20 hover:bg-white/10 rounded">Cancel</button>
                              <motion.button onClick={handleProjectSave} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-2 bg-dark-accent text-black font-bold font-sketch rounded flex items-center gap-2">
                                  {isSaving ? 'SAVING...' : <><Save size={18} /> SAVE PROJECT</>}
+                            </motion.button>
+                        </div>
+                    )}
+
+                    {activeTab === 'certificates' && editingCertificate && (
+                        <div className="flex gap-2">
+                            <button onClick={() => setEditingCertificate(null)} className="px-4 py-2 border border-white/20 hover:bg-white/10 rounded">Cancel</button>
+                            <motion.button onClick={handleCertificateSave} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="px-6 py-2 bg-dark-accent text-black font-bold font-sketch rounded flex items-center gap-2">
+                                {isSaving ? 'SAVING...' : <><Save size={18} /> SAVE CERT</>}
                             </motion.button>
                         </div>
                     )}
@@ -672,6 +761,62 @@ export const AdminDashboard: React.FC = () => {
                             </div>
                         </div>
                     )}
+
+                    {/* --- CERTIFICATES TAB (NEW) --- */}
+                    {activeTab === 'certificates' && !editingCertificate && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <button onClick={() => openCertificateEditor()} className="flex flex-col items-center justify-center h-48 border-2 border-dashed border-white/10 rounded-lg hover:border-dark-accent/50 hover:bg-dark-accent/5 transition-colors gap-2 group">
+                                <Plus size={32} className="text-gray-600 group-hover:text-dark-accent" />
+                                <span className="text-sm font-mono text-gray-500">Add Certificate</span>
+                            </button>
+                            {certificates.map(c => (
+                                <div key={c.id} className="relative group border border-white/10 rounded-lg overflow-hidden bg-black">
+                                    <div className="h-32 bg-gray-900 relative">
+                                        <img src={c.image} className="w-full h-full object-cover opacity-60 group-hover:opacity-100" />
+                                        <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => openCertificateEditor(c)} className="p-2 bg-black/80 hover:bg-blue-600 rounded text-white"><Edit3 size={14} /></button>
+                                            <button onClick={() => handleDeleteCertificate(c.id)} className="p-2 bg-black/80 hover:bg-red-600 rounded text-white"><Trash2 size={14} /></button>
+                                        </div>
+                                    </div>
+                                    <div className="p-4">
+                                        <h3 className="font-bold font-sketch truncate">{c.title}</h3>
+                                        <p className="text-xs text-gray-500 font-mono">{c.issuer} | {c.date}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {activeTab === 'certificates' && editingCertificate && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-6">
+                                <InputField label="Certificate Name" value={certificateForm.title} onChange={(v: string) => setCertificateForm(p => ({...p, title: v}))} />
+                                <InputField label="Issuer (e.g. Coursera)" value={certificateForm.issuer} onChange={(v: string) => setCertificateForm(p => ({...p, issuer: v}))} />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <InputField label="Year" value={certificateForm.date} onChange={(v: string) => setCertificateForm(p => ({...p, date: v}))} placeholder="2023" />
+                                    <InputField label="Verify Link" value={certificateForm.link} onChange={(v: string) => setCertificateForm(p => ({...p, link: v}))} />
+                                </div>
+                            </div>
+                            <div className="space-y-4">
+                                <label className="text-xs font-mono text-gray-500 uppercase block">Certificate Image</label>
+                                <div className="border-2 border-dashed border-white/10 rounded-lg h-48 flex items-center justify-center relative bg-black overflow-hidden group">
+                                    {(certificateImageFile || certificateForm.image) ? (
+                                        <img src={certificateImageFile ? URL.createObjectURL(certificateImageFile) : certificateForm.image} className="w-full h-full object-contain" />
+                                    ) : (
+                                        <div className="text-center text-gray-600">
+                                            <ImageIcon size={32} className="mx-auto mb-2" />
+                                            <p className="text-xs">No Image Selected</p>
+                                        </div>
+                                    )}
+                                    <label className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                        <Upload size={32} className="text-white mb-2" />
+                                        <input type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && setCertificateImageFile(e.target.files[0])} />
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
 
                     {/* --- RESUME TAB --- */}
                     {activeTab === 'resume' && !editingResume && (

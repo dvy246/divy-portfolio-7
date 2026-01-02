@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { PERSONAL_INFO, SKILL_CATEGORIES, PROJECTS, BLOGS, RESUME_ENTRIES } from '../data';
+import { PERSONAL_INFO, SKILL_CATEGORIES, PROJECTS, BLOGS, RESUME_ENTRIES, CERTIFICATES } from '../data';
 
 // Define the shape of our data
 interface PortfolioData {
   personalInfo: typeof PERSONAL_INFO;
   skills: typeof SKILL_CATEGORIES;
   projects: typeof PROJECTS;
+  certificates: typeof CERTIFICATES;
   blogs: typeof BLOGS;
   resume: typeof RESUME_ENTRIES;
   isLoading: boolean;
@@ -21,6 +22,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     personalInfo: PERSONAL_INFO,
     skills: SKILL_CATEGORIES,
     projects: PROJECTS,
+    certificates: CERTIFICATES,
     blogs: BLOGS,
     resume: RESUME_ENTRIES,
   });
@@ -37,13 +39,13 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
 
     try {
-      // Fetch Profile and Projects in parallel
-      // We use maybeSingle() to prevent errors if 0 rows exist, and limit(1) to prevent errors if >1 row exist.
-      const [profileResult, projectsResult, resumeResult, blogsResult] = await Promise.allSettled([
+      // Fetch data in parallel
+      const [profileResult, projectsResult, resumeResult, blogsResult, certsResult] = await Promise.allSettled([
         supabase.from('profile').select('*').limit(1).maybeSingle(),
         supabase.from('projects').select('*').order('id', { ascending: false }),
         supabase.from('resume').select('*').order('period', { ascending: false }),
         supabase.from('blogs').select('*').order('date', { ascending: false }),
+        supabase.from('certificates').select('*').order('id', { ascending: false }),
       ]);
 
       // 1. Handle Profile Data
@@ -52,7 +54,7 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setData(prev => ({
           ...prev,
           personalInfo: {
-            ...prev.personalInfo, // Keep existing defaults for fields not in DB
+            ...prev.personalInfo,
             name: dbProfile.name || prev.personalInfo.name,
             title: dbProfile.title || prev.personalInfo.title,
             headline: dbProfile.headline || prev.personalInfo.headline,
@@ -102,6 +104,19 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               link: b.link
           }));
           setData(prev => ({ ...prev, blogs: dbBlogs.length > 0 ? dbBlogs : prev.blogs }));
+      }
+
+      // 5. Handle Certificates Data
+      if (certsResult.status === 'fulfilled' && certsResult.value.data) {
+          const dbCerts = certsResult.value.data.map((c: any) => ({
+              id: c.id,
+              title: c.title,
+              issuer: c.issuer,
+              date: c.date,
+              image: c.image_url || "https://picsum.photos/600/400?grayscale",
+              link: c.link || "#"
+          }));
+          setData(prev => ({ ...prev, certificates: dbCerts.length > 0 ? dbCerts : prev.certificates }));
       }
 
     } catch (error) {
