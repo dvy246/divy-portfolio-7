@@ -127,11 +127,11 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                 
                 <div className="absolute inset-[2px] bg-[#050505] rounded-full z-10" />
 
-                <div className={`absolute inset-[6px] rounded-full overflow-hidden relative z-20 shadow-2xl`}>
+                <div className={`absolute inset-[6px] rounded-full overflow-hidden relative z-20 shadow-2xl bg-black`}>
                 <img 
                     src={personalInfo.avatarUrl} 
                     alt="Avatar" 
-                    className={`w-full h-full object-cover object-top transition-all duration-500 ${isHoveringAvatar ? 'scale-110' : 'scale-100'}`}
+                    className={`w-full h-full object-cover object-center transition-all duration-500 ${isHoveringAvatar ? 'scale-110' : 'scale-100'}`}
                 />
                 <motion.div 
                     className="absolute inset-0 bg-gradient-to-b from-transparent via-cyan-400/10 to-transparent z-30"
