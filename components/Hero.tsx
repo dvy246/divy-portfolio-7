@@ -41,29 +41,31 @@ const DecryptionText: React.FC<{ text: string; start: boolean }> = ({ text, star
     return <span>{displayText}</span>;
 }
 
-// --- Sub-Component: Sketch Marker Underline ---
+// --- Sub-Component: Sketch Marker Underline (Yellow + Cyan) ---
 const SketchUnderline = () => (
-    <svg className="absolute -bottom-4 left-0 w-full h-6 pointer-events-none overflow-visible z-[-1]" viewBox="0 0 300 25" preserveAspectRatio="none">
+    <svg className="absolute -bottom-6 left-0 w-full h-12 pointer-events-none overflow-visible z-[-1]" viewBox="0 0 300 30" preserveAspectRatio="none">
+        {/* Yellow Marker Line (Reference Style) */}
         <motion.path 
-            d="M5,20 C50,5 150,22 290,10"
+            d="M5,15 Q75,5 145,18 T295,10"
             fill="none"
-            stroke="#29D8FF" // Cyan accent
-            strokeWidth="8"
+            stroke="#FFE81F" // Bright Yellow
+            strokeWidth="6"
+            strokeLinecap="round"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{ pathLength: 1, opacity: 0.9 }}
+            transition={{ duration: 0.6, delay: 0.5, ease: "circOut" }}
+        />
+        {/* Sci-Fi Cyan Accent Line */}
+        <motion.path 
+            d="M10,25 Q80,18 150,28 T280,22"
+            fill="none"
+            stroke="#29D8FF" // Sci-Fi Cyan
+            strokeWidth="3"
             strokeLinecap="round"
             initial={{ pathLength: 0, opacity: 0 }}
             animate={{ pathLength: 1, opacity: 0.6 }}
-            transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
+            transition={{ duration: 0.8, delay: 0.7, ease: "circOut" }}
             style={{ filter: "blur(1px)" }}
-        />
-        <motion.path 
-            d="M10,22 C60,8 160,25 280,12"
-            fill="none"
-            stroke="#FFFF00" // Yellow accent from reference image
-            strokeWidth="4"
-            strokeLinecap="round"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 0.8 }}
-            transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
         />
     </svg>
 );
@@ -101,12 +103,12 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
       }
   };
 
-  // Hologram Glitch Keyframes - Affects CONTAINER only, not the image quality
+  // Hologram Glitch Keyframes
   const glitchVariants: Variants = {
       hidden: { opacity: 0 },
       visible: {
           opacity: 1,
-          skewX: [0, 2, -2, 0], // Reduced skew for cleaner look
+          skewX: [0, 2, -2, 0], 
           scale: [0.95, 1],
           transition: { duration: 0.8, ease: "circOut" }
       },
@@ -119,17 +121,23 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
     <section className="min-h-screen flex flex-col justify-center items-center relative pt-24 px-4 overflow-hidden selection:bg-cyan-500/30">
         <ThunderStrike isActive={showThunder} onComplete={onThunderComplete} />
 
-        {/* --- Background Atmosphere (Blue Lightning Effect) --- */}
-        {/* Deep Blue Ambient Blob Top Left */}
-        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-blue-900/20 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
-        {/* Cyan Ambient Blob Bottom Right */}
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-cyan-900/15 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
+        {/* --- Background Atmosphere (Sci-Fi Blue Mixture) --- */}
+        {/* Base Layer: Deep Void */}
+        <div className="absolute inset-0 bg-[#020617]" />
         
-        {/* Grid Texture */}
-        <div className="absolute inset-0 bg-grid-light dark:bg-grid-dark bg-[length:40px_40px] opacity-10 pointer-events-none" />
+        {/* Layer 1: Deep Blue Gradient Mesh */}
+        <div className="absolute top-0 left-0 w-full h-[120%] bg-gradient-to-br from-blue-950/50 via-[#0a0a0a] to-transparent pointer-events-none" />
         
-        {/* Vignette to keep focus center */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050505_95%)] pointer-events-none" />
+        {/* Layer 2: Cyber Cyan Glows (Mixture) */}
+        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-800/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-cyan-900/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
+        <div className="absolute top-[40%] right-[10%] w-[30%] h-[30%] bg-indigo-900/10 rounded-full blur-[80px] pointer-events-none" />
+
+        {/* Layer 3: Technical Grid */}
+        <div className="absolute inset-0 bg-grid-light dark:bg-grid-dark bg-[length:50px_50px] opacity-[0.07] pointer-events-none" />
+        
+        {/* Layer 4: Vignette for focus */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#020617_100%)] pointer-events-none" />
 
       <div className="max-w-5xl w-full flex flex-col items-center gap-12 relative z-10">
         
@@ -153,7 +161,7 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                     className="absolute inset-0 bg-cyan-500/20 blur-[50px] rounded-full z-0" 
                 />
                 
-                {/* LAYER 1: The Rotating Gradient Ring (Outer Border) - Behind Image */}
+                {/* LAYER 1: The Rotating Gradient Ring (Outer Border) */}
                 <motion.div
                     className="absolute -inset-[3px] rounded-full z-10 pointer-events-none"
                     style={{ background: "conic-gradient(from 0deg, transparent 0%, #00FFFF 50%, transparent 100%)" }}
@@ -161,26 +169,26 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                     transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                 />
 
-                {/* LAYER 2: The Image Container (FRONT) */}
-                {/* Note: Inset-1 ensures the ring behind shows through slightly as a border */}
+                {/* LAYER 2: The Image Container */}
                 <div className="absolute inset-1 rounded-full overflow-hidden z-20 bg-[#050505] border-2 border-white/5">
                     <img 
                         src={personalInfo.avatarUrl} 
                         alt="Profile" 
                         className="w-full h-full object-cover object-top opacity-100"
-                        style={{ filter: 'none' }} // Explicitly disable filters
+                        style={{ filter: 'none' }} 
                     />
                 </div>
             </motion.div>
 
             {/* TEXT: SYSTEM BOOT-UP */}
             <div className="flex flex-col items-center text-center max-w-4xl">
-                {/* SKETCH STYLE HEADLINE */}
-                <div className="relative mb-8 p-4">
-                    <h1 className="text-6xl md:text-8xl text-white leading-[1.1] font-sketch font-extrabold tracking-tight relative z-20 transform -rotate-2"
+                
+                {/* --- SKETCH STYLE HEADLINE --- */}
+                <div className="relative mb-8 p-2 inline-block">
+                    <h1 className="text-7xl md:text-9xl text-white leading-[1.1] font-sketch font-extrabold tracking-tighter relative z-20 transform -rotate-2"
                         style={{ 
-                            textShadow: "4px 4px 0px #000, -2px -2px 0px rgba(0,0,0,0.5)",
-                            WebkitTextStroke: "1px rgba(255,255,255,0.1)"
+                            textShadow: "5px 5px 0px #000, -2px -2px 0px rgba(0,0,0,0.5)",
+                            filter: "drop-shadow(0px 0px 20px rgba(41,216,255,0.15))" // Subtle Blue Glow behind text
                         }}
                     >
                         <DecryptionText text={personalInfo.headline} start={internalStart} />
@@ -195,7 +203,7 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                     <motion.p
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 1.0, duration: 0.8 }} // Wait for decryption to mostly finish
+                        transition={{ delay: 1.0, duration: 0.8 }}
                     >
                         {personalInfo.subHeadline}
                     </motion.p>
@@ -221,13 +229,31 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
 
       </div>
 
+      {/* --- BOTTOM TAGLINE (Learn -> Build -> Repeat) --- */}
+      {/* Positioned bottom-left to match reference screenshot */}
       <motion.div 
-        className="absolute bottom-10 left-1/2 -translate-x-1/2"
-        animate={{ y: [0, 10, 0], opacity: [0.5, 1, 0.5] }}
-        transition={{ repeat: Infinity, duration: 2 }}
+        initial={{ opacity: 0, x: -50 }}
+        animate={internalStart ? { opacity: 1, x: 0 } : {}}
+        transition={{ delay: 2, duration: 0.8, ease: "easeOut" }}
+        className="absolute bottom-8 left-6 md:bottom-12 md:left-12 z-20 pointer-events-none hidden md:block"
       >
-        <div className="w-[1px] h-16 bg-gradient-to-b from-transparent via-cyan-400 to-transparent" />
+        <h2 className="text-4xl md:text-5xl font-sketch font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+            Learn <span className="text-white/40 text-3xl align-middle mx-1">→</span> Build <span className="text-white/40 text-3xl align-middle mx-1">→</span> Repeat
+        </h2>
       </motion.div>
+
+      {/* Mobile Center Version */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={internalStart ? { opacity: 1 } : {}}
+        transition={{ delay: 2, duration: 0.8 }}
+        className="absolute bottom-6 md:hidden z-20 pointer-events-none w-full text-center px-4"
+      >
+        <h2 className="text-2xl font-sketch font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400">
+            Learn → Build → Repeat
+        </h2>
+      </motion.div>
+
     </section>
   );
 };
