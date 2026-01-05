@@ -41,6 +41,33 @@ const DecryptionText: React.FC<{ text: string; start: boolean }> = ({ text, star
     return <span>{displayText}</span>;
 }
 
+// --- Sub-Component: Sketch Marker Underline ---
+const SketchUnderline = () => (
+    <svg className="absolute -bottom-4 left-0 w-full h-6 pointer-events-none overflow-visible z-[-1]" viewBox="0 0 300 25" preserveAspectRatio="none">
+        <motion.path 
+            d="M5,20 C50,5 150,22 290,10"
+            fill="none"
+            stroke="#29D8FF" // Cyan accent
+            strokeWidth="8"
+            strokeLinecap="round"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{ pathLength: 1, opacity: 0.6 }}
+            transition={{ duration: 0.8, delay: 0.5, ease: "easeOut" }}
+            style={{ filter: "blur(1px)" }}
+        />
+        <motion.path 
+            d="M10,22 C60,8 160,25 280,12"
+            fill="none"
+            stroke="#FFFF00" // Yellow accent from reference image
+            strokeWidth="4"
+            strokeLinecap="round"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{ pathLength: 1, opacity: 0.8 }}
+            transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
+        />
+    </svg>
+);
+
 // --- Main Hero Component ---
 export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = false }) => {
   const { personalInfo } = usePortfolio();
@@ -92,8 +119,17 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
     <section className="min-h-screen flex flex-col justify-center items-center relative pt-24 px-4 overflow-hidden selection:bg-cyan-500/30">
         <ThunderStrike isActive={showThunder} onComplete={onThunderComplete} />
 
+        {/* --- Background Atmosphere (Blue Lightning Effect) --- */}
+        {/* Deep Blue Ambient Blob Top Left */}
+        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-blue-900/20 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
+        {/* Cyan Ambient Blob Bottom Right */}
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-cyan-900/15 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
+        
+        {/* Grid Texture */}
         <div className="absolute inset-0 bg-grid-light dark:bg-grid-dark bg-[length:40px_40px] opacity-10 pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050505_90%)] pointer-events-none" />
+        
+        {/* Vignette to keep focus center */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050505_95%)] pointer-events-none" />
 
       <div className="max-w-5xl w-full flex flex-col items-center gap-12 relative z-10">
         
@@ -104,7 +140,7 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                 variants={glitchVariants}
                 initial="hidden"
                 animate={internalStart ? "visible" : "hidden"}
-                className="relative group w-64 h-64 flex-shrink-0 cursor-pointer mb-8"
+                className="relative group w-64 h-64 flex-shrink-0 cursor-pointer mb-12"
                 onHoverStart={() => setIsHoveringAvatar(true)}
                 onHoverEnd={() => setIsHoveringAvatar(false)}
             >
@@ -134,17 +170,27 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                         className="w-full h-full object-cover object-top opacity-100"
                         style={{ filter: 'none' }} // Explicitly disable filters
                     />
-                    {/* NO OVERLAYS HERE. The image face is now unobstructed. */}
                 </div>
             </motion.div>
 
             {/* TEXT: SYSTEM BOOT-UP */}
-            <div className="flex flex-col items-center text-center max-w-3xl">
-                <h1 className="text-5xl md:text-7xl mb-6 text-white leading-[1.1] font-bold tracking-tight drop-shadow-[0_0_15px_rgba(34,211,238,0.3)]">
-                <DecryptionText text={personalInfo.headline} start={internalStart} />
-                </h1>
+            <div className="flex flex-col items-center text-center max-w-4xl">
+                {/* SKETCH STYLE HEADLINE */}
+                <div className="relative mb-8 p-4">
+                    <h1 className="text-6xl md:text-8xl text-white leading-[1.1] font-sketch font-extrabold tracking-tight relative z-20 transform -rotate-2"
+                        style={{ 
+                            textShadow: "4px 4px 0px #000, -2px -2px 0px rgba(0,0,0,0.5)",
+                            WebkitTextStroke: "1px rgba(255,255,255,0.1)"
+                        }}
+                    >
+                        <DecryptionText text={personalInfo.headline} start={internalStart} />
+                    </h1>
+                    
+                    {/* The Marker Underline */}
+                    {internalStart && <SketchUnderline />}
+                </div>
                 
-                <div className="text-xl md:text-2xl text-gray-400 leading-relaxed font-normal tracking-wide max-w-2xl min-h-[3rem]">
+                <div className="text-xl md:text-2xl text-gray-300 leading-relaxed font-sans font-medium tracking-wide max-w-2xl min-h-[3rem] drop-shadow-lg">
                 {internalStart && (
                     <motion.p
                         initial={{ opacity: 0, y: 10 }}
@@ -162,11 +208,11 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                 transition={{ delay: 1.5, duration: 0.5 }}
                 className="mt-12 flex gap-6 justify-center"
                 >
-                    <a href="#projects" onClick={(e) => handleShockNavigation(e, '#projects')} className="group relative px-8 py-3 bg-white text-black font-sans font-bold text-sm tracking-widest uppercase overflow-hidden hover:scale-105 transition-transform">
+                    <a href="#projects" onClick={(e) => handleShockNavigation(e, '#projects')} className="group relative px-8 py-4 bg-white text-black font-sketch font-bold text-lg tracking-widest uppercase overflow-hidden hover:scale-105 transition-transform shadow-[4px_4px_0px_0px_rgba(41,216,255,1)] hover:shadow-[2px_2px_0px_0px_rgba(41,216,255,1)]">
                     <span className="relative z-10">View Work</span>
                     <div className="absolute inset-0 bg-cyan-400 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-in-out" />
                     </a>
-                    <a href="#contact" onClick={(e) => handleShockNavigation(e, '#contact')} className="group px-8 py-3 border border-white/20 hover:border-white text-white font-sans font-bold text-sm tracking-widest uppercase transition-all hover:scale-105">
+                    <a href="#contact" onClick={(e) => handleShockNavigation(e, '#contact')} className="group px-8 py-4 border-2 border-white/20 hover:border-white text-white font-sketch font-bold text-lg tracking-widest uppercase transition-all hover:scale-105 backdrop-blur-sm">
                     Let's Talk
                     </a>
                 </motion.div>
