@@ -15,6 +15,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { PortfolioProvider } from './context/PortfolioContext';
 import { ShatteredGlassIntro } from './components/ShatteredGlassIntro';
 import { ThorIntro } from './components/ThorIntro';
+import { ParticleMetamorphosis } from './components/ParticleMetamorphosis';
 
 const MainPortfolio: React.FC<{ startHeroAnim: boolean }> = ({ startHeroAnim }) => {
   return (
@@ -90,6 +91,9 @@ const AppContent: React.FC = () => {
         <main className="relative min-h-screen w-full overflow-x-hidden selection:bg-light-accent selection:text-white dark:selection:bg-dark-accent dark:selection:text-black">
           {!isAdminRoute && <CustomCursor />}
           {!isAdminRoute && <ScrollProgress />}
+
+          {/* GLOBAL BACKGROUND: 3D Particle System */}
+          {!isAdminRoute && <ParticleMetamorphosis />}
 
           {/* 1. THOR INTRO (Top Layer) */}
           {showThor && (

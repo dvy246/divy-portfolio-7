@@ -3,7 +3,6 @@ import { motion, Variants } from 'framer-motion';
 import { usePortfolio } from '../context/PortfolioContext';
 import { CircularStorm } from './CircularStorm';
 import { ThunderStrike } from './ThunderStrike';
-import { SentientGrid } from './SentientGrid';
 
 // --- Sub-Component: Decryption Text Effect ---
 const DecryptionText: React.FC<{ text: string; start: boolean }> = ({ text, start }) => {
@@ -122,21 +121,17 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
     <section className="min-h-screen flex flex-col justify-center items-center relative pt-20 px-4 overflow-hidden selection:bg-cyan-500/30">
         <ThunderStrike isActive={showThunder} onComplete={onThunderComplete} />
 
-        {/* --- Background Atmosphere (Sci-Fi Blue Mixture) --- */}
-        {/* Base Layer: Deep Void */}
-        <div className="absolute inset-0 bg-[#020617] z-0" />
+        {/* 
+            CRITICAL: No solid background div here! 
+            We rely on ParticleMetamorphosis in App.tsx to provide the background.
+        */}
         
-        {/* Sentient Grid (Interactive Physics Layer) - Z-INDEX 1 */}
-        <div className="absolute inset-0 z-[1]">
-            <SentientGrid />
-        </div>
-        
-        {/* Layer 2: Cyber Cyan Glows (Mixture) - Z-INDEX 2 */}
-        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-800/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen animate-pulse z-[2]" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-cyan-900/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen z-[2]" />
+        {/* Layer 2: Cyber Cyan Glows (Mixture) - transparent gradients */}
+        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-800/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen animate-pulse z-[2]" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-cyan-900/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen z-[2]" />
 
-        {/* Layer 4: Vignette for focus - Z-INDEX 3 */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#020617_100%)] pointer-events-none z-[3]" />
+        {/* Layer 4: Vignette for focus */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,#020617_120%)] pointer-events-none z-[3]" />
 
       <div className="max-w-5xl w-full flex flex-col items-center gap-8 relative z-10">
         

@@ -35,7 +35,7 @@ export const Projects: React.FC = () => {
   };
 
   return (
-    <section id="projects" className="py-20 px-4 relative min-h-screen bg-black/95">
+    <section id="projects" className="py-20 px-4 relative min-h-screen bg-black/80 backdrop-blur-sm">
       {/* Full Screen Shock Effect for Projects */}
       <ThunderStrike isActive={thunderActive} onComplete={() => {}} />
 
@@ -73,7 +73,7 @@ export const Projects: React.FC = () => {
                 <CardContainer className="inter-var w-full h-full" containerClassName="w-full h-full">
                     {!isRevealed ? (
                         // --- LOCKED STATE (3D) ---
-                        <CardBody className="bg-[#050505] relative group/card border-2 border-dashed border-dark-accent/30 w-full h-full rounded-xl p-8 flex flex-col items-center justify-center overflow-hidden hover:border-dark-accent hover:shadow-[0_0_30px_rgba(41,216,255,0.1)] transition-all duration-300">
+                        <CardBody className="bg-[#050505]/95 relative group/card border-2 border-dashed border-dark-accent/30 w-full h-full rounded-xl p-8 flex flex-col items-center justify-center overflow-hidden hover:border-dark-accent hover:shadow-[0_0_30px_rgba(41,216,255,0.1)] transition-all duration-300">
                              {/* Sketchy Corners */}
                              <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-dark-accent" />
                              <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-dark-accent" />
@@ -113,7 +113,7 @@ export const Projects: React.FC = () => {
                         </CardBody>
                     ) : (
                         // --- REVEALED STATE (3D) ---
-                        <CardBody className="bg-[#080808] relative group/card border border-dark-accent/50 w-full h-full rounded-xl overflow-hidden flex flex-col">
+                        <CardBody className="bg-[#080808]/95 relative group/card border border-dark-accent/50 w-full h-full rounded-xl overflow-hidden flex flex-col">
                              {/* Space Background Layer */}
                              <div className="absolute inset-0 z-0">
                                  <Starfield />

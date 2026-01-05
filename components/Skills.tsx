@@ -28,7 +28,7 @@ export const Skills: React.FC = () => {
   };
 
   return (
-    <section id="skills" className="py-24 px-4 bg-light-bg dark:bg-dark-bg relative overflow-hidden">
+    <section id="skills" className="py-24 px-4 bg-light-bg/80 dark:bg-dark-bg/80 relative overflow-hidden backdrop-blur-sm">
         {/* Thunder Effect */}
         <ThunderStrike isActive={thunderActive} onComplete={() => {}} />
 
@@ -63,7 +63,7 @@ export const Skills: React.FC = () => {
             >
                 <CardContainer className="inter-var w-full h-full" containerClassName="w-full h-full">
                     <CardBody 
-                        className="bg-white/5 dark:bg-[#0a0a0a] relative group/card border-2 border-dashed border-light-text/10 dark:border-dark-text/20 w-full h-full rounded-xl p-8 flex flex-col justify-between overflow-hidden cursor-pointer hover:border-light-accent dark:hover:border-dark-accent dark:hover:shadow-[0_0_20px_rgba(41,216,255,0.15)] transition-colors"
+                        className="bg-white/5 dark:bg-[#0a0a0a]/90 relative group/card border-2 border-dashed border-light-text/10 dark:border-dark-text/20 w-full h-full rounded-xl p-8 flex flex-col justify-between overflow-hidden cursor-pointer hover:border-light-accent dark:hover:border-dark-accent dark:hover:shadow-[0_0_20px_rgba(41,216,255,0.15)] transition-colors"
                     >
                         {/* PERFORMANCE OPTIMIZATION: Only render ElectricOverlay when hovered */}
                         {hoveredCard === category.id && (
