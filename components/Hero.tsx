@@ -141,31 +141,39 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                 onHoverStart={() => setIsHoveringAvatar(true)}
                 onHoverEnd={() => setIsHoveringAvatar(false)}
             >
-                {/* LAYER 0: The Circular Storm Effect (Reverted) */}
-                <CircularStorm isHovering={isHoveringAvatar} />
+                {/* LAYER 0: The Circular Storm Effect (Behind everything) */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[160%] h-[160%] z-0 pointer-events-none">
+                     <CircularStorm isHovering={isHoveringAvatar} />
+                </div>
 
-                {/* LAYER 0: The Back Glow */}
+                {/* LAYER 1: Back Glow */}
                 <motion.div 
-                    animate={{ opacity: isHoveringAvatar ? 0.8 : 0.4 }} 
-                    className="absolute inset-0 bg-cyan-500/20 blur-[50px] rounded-full z-0" 
+                    animate={{ opacity: isHoveringAvatar ? 0.8 : 0.3 }} 
+                    className="absolute inset-0 bg-cyan-500/20 blur-[40px] rounded-full z-0" 
                 />
 
-                {/* LAYER 1: The Rotating Gradient Ring (Outer Border) */}
+                {/* LAYER 2: The Rotating Gradient Ring (Outer Border) */}
                 <motion.div
-                    className="absolute -inset-[3px] rounded-full z-10 pointer-events-none"
+                    className="absolute -inset-[4px] rounded-full z-10 pointer-events-none"
                     style={{ background: "conic-gradient(from 0deg, transparent 0%, #00FFFF 50%, transparent 100%)" }}
                     animate={{ rotate: 360 }}
                     transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                 />
 
-                {/* LAYER 1: The Image Container */}
-                <div className="absolute inset-1 rounded-full overflow-hidden z-20 bg-[#050505] border-2 border-white/5 relative">
+                {/* LAYER 3: The Image Mask (Strictly circular) */}
+                <div className="absolute inset-[2px] rounded-full overflow-hidden z-20 bg-[#050505] border-2 border-white/10 ring-1 ring-black/50">
                     <img 
                         src={personalInfo.avatarUrl} 
                         alt="Profile" 
-                        className="w-full h-full object-cover object-top opacity-100 relative z-20"
-                        style={{ filter: isHoveringAvatar ? 'contrast(1.2) brightness(1.1)' : 'none', transition: 'filter 0.3s' }} 
+                        className="w-full h-full object-cover object-top"
+                        style={{ 
+                            filter: isHoveringAvatar ? 'contrast(1.1) brightness(1.1)' : 'none', 
+                            transition: 'filter 0.3s' 
+                        }} 
                     />
+                    
+                    {/* Inner Shadow for depth (Inside the frame) */}
+                    <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.6)] pointer-events-none rounded-full" />
                 </div>
             </motion.div>
 

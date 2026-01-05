@@ -10,18 +10,18 @@ export const ParticleMetamorphosis: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // --- CONFIGURATION REFINED FOR SUBTLETY ---
-    const PARTICLE_COUNT = window.innerWidth < 768 ? 800 : 1800; // Less clutter
+    // --- CONFIGURATION ---
+    const PARTICLE_COUNT = window.innerWidth < 768 ? 600 : 1500; // Even cleaner count
     const MOUSE_REPULSION = 150;
-    const ROTATION_SPEED = 0.0005; // Very slow rotation
-    const TRANSITION_SPEED = 0.02; // Slower morphing
+    const ROTATION_SPEED = 0.0003; // Very slow drift
+    const TRANSITION_SPEED = 0.015; // Smooth morph
 
     let width = canvas.width = window.innerWidth;
     let height = canvas.height = window.innerHeight;
 
     // --- STATE ---
     let currentScrollY = 0;
-    let targetShape = 0; // 0: Head, 1: Brain, 2: Globe
+    let targetShape = 0; // 0: Field, 1: Brain, 2: Globe
     const mouse = { x: 0, y: 0, isActive: false };
 
     interface Particle {
@@ -37,47 +37,47 @@ export const ParticleMetamorphosis: React.FC = () => {
 
     // Initialize Particles
     for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const isAccent = Math.random() > 0.85; // Only 15% Accent particles
+      const isAccent = Math.random() > 0.90; // Only 10% Accent
       particles.push({
-        x: (Math.random() - 0.5) * 1200,
-        y: (Math.random() - 0.5) * 1200,
-        z: (Math.random() - 0.5) * 1200,
+        x: (Math.random() - 0.5) * 2000,
+        y: (Math.random() - 0.5) * 2000,
+        z: (Math.random() - 0.5) * 2000,
         tx: 0, ty: 0, tz: 0,
         vx: 0, vy: 0, vz: 0,
-        // Darker colors: Grey-blue for standard, dim cyan for accent
-        color: isAccent ? '#22d3ee' : '#64748b', 
-        baseAlpha: isAccent ? 0.4 : 0.2, // Very transparent
-        size: isAccent ? 1.5 : 0.8 // Very small particles
+        color: isAccent ? '#22d3ee' : '#475569', 
+        baseAlpha: isAccent ? 0.5 : 0.2, 
+        size: isAccent ? 1.5 : 0.8
       });
     }
 
     // --- SHAPE GENERATORS ---
     
-    // 1. Cyber Head 
-    const setHeadShape = () => {
-      const radius = 320; // Widen radius to keep clear of text center
+    // 1. Cosmic Field (Spread out, void in center)
+    const setCosmicField = () => {
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         const p = particles[i];
-        const u = Math.random() * Math.PI;
-        const v = Math.random() * Math.PI * 2;
         
-        let x = radius * Math.sin(u) * Math.cos(v);
-        let y = radius * Math.sin(u) * Math.sin(v);
-        let z = radius * Math.cos(u);
+        // Random wide distribution
+        let x = (Math.random() - 0.5) * width * 1.5;
+        let y = (Math.random() - 0.5) * height * 1.5;
+        let z = (Math.random() - 0.5) * 1000;
 
-        if (y > 0) { x *= 0.85; z *= 0.9; } 
-        if (y > 150) { x *= 0.7; } 
-        if (y > -50 && y < 100 && z > 0) {
-            if (Math.abs(x) < 60) { z += 50 * (1 - Math.abs(x)/60); }
+        // CREATE SAFE ZONE: If particle is in the middle (where profile is), push it out
+        const distFromCenter = Math.sqrt(x*x + y*y);
+        if (distFromCenter < 350) {
+            // Push outwards along angle
+            const angle = Math.atan2(y, x);
+            x = Math.cos(angle) * (350 + Math.random() * 200);
+            y = Math.sin(angle) * (350 + Math.random() * 200);
         }
-        
+
         p.tx = x; p.ty = y; p.tz = z;
       }
     };
 
-    // 2. Digital Brain
+    // 2. Digital Brain (For Skills Section)
     const setBrainShape = () => {
-      const radius = 280;
+      const radius = 300;
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         const p = particles[i];
         const hemisphere = i % 2 === 0 ? 1 : -1;
@@ -96,9 +96,9 @@ export const ParticleMetamorphosis: React.FC = () => {
       }
     };
 
-    // 3. Networked Globe
+    // 3. Networked Globe (For Footer/Contact)
     const setGlobeShape = () => {
-        const radius = 400; // Large globe
+        const radius = 450;
         for (let i = 0; i < PARTICLE_COUNT; i++) {
           const p = particles[i];
           const u = Math.random() * Math.PI * 2;
@@ -110,7 +110,8 @@ export const ParticleMetamorphosis: React.FC = () => {
         }
     };
 
-    setHeadShape();
+    // Initialize with Field
+    setCosmicField();
 
     // --- ANIMATION LOOP ---
     let rotationAngle = 0;
@@ -121,12 +122,12 @@ export const ParticleMetamorphosis: React.FC = () => {
       const scrollPct = currentScrollY / (document.body.scrollHeight - window.innerHeight || 1);
       
       let nextShape = 0;
-      if (scrollPct > 0.15 && scrollPct < 0.5) nextShape = 1; 
-      if (scrollPct >= 0.5) nextShape = 2; 
+      if (scrollPct > 0.15 && scrollPct < 0.6) nextShape = 1; 
+      if (scrollPct >= 0.6) nextShape = 2; 
 
       if (nextShape !== targetShape) {
           targetShape = nextShape;
-          if (targetShape === 0) setHeadShape();
+          if (targetShape === 0) setCosmicField();
           if (targetShape === 1) setBrainShape();
           if (targetShape === 2) setGlobeShape();
       }
@@ -165,7 +166,7 @@ export const ParticleMetamorphosis: React.FC = () => {
         let y1 = y * cosX - z1 * sinX;
         let z2 = z1 * cosX + y * sinX;
 
-        // Projection - Push Z back slightly for depth
+        // Projection
         const scale = 800 / (1000 + z2); 
         const projX = x1 * scale + cx;
         const projY = y1 * scale + cy;
@@ -187,7 +188,7 @@ export const ParticleMetamorphosis: React.FC = () => {
 
         // Draw with heavily reduced opacity
         const depthAlpha = (scale - 0.2);
-        const finalAlpha = Math.min(depthAlpha * p.baseAlpha, 0.4); // Cap max opacity at 0.4
+        const finalAlpha = Math.min(depthAlpha * p.baseAlpha, 0.4); 
 
         if (finalAlpha > 0) {
             ctx.fillStyle = p.color;
@@ -206,7 +207,11 @@ export const ParticleMetamorphosis: React.FC = () => {
 
     const handleScroll = () => { currentScrollY = window.scrollY; };
     const handleMouseMove = (e: MouseEvent) => { mouse.x = e.clientX; mouse.y = e.clientY; };
-    const handleResize = () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; };
+    const handleResize = () => { 
+        width = canvas.width = window.innerWidth; 
+        height = canvas.height = window.innerHeight; 
+        if(targetShape === 0) setCosmicField(); // Re-calc field on resize
+    };
 
     window.addEventListener('scroll', handleScroll);
     window.addEventListener('mousemove', handleMouseMove);
@@ -228,7 +233,6 @@ export const ParticleMetamorphosis: React.FC = () => {
       transition={{ duration: 1 }}
       className="fixed inset-0 z-[-1] pointer-events-none bg-[#020617]"
       style={{
-          // Stronger vignette to fade edges
           background: 'radial-gradient(circle at center, #0f172a 0%, #020617 80%)' 
       }}
     />
