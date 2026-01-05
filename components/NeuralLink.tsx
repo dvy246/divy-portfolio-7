@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState, useRef } from 'react';
 
 interface NeuralLinkProps {
   activeId: number | null;
@@ -7,120 +6,151 @@ interface NeuralLinkProps {
 }
 
 export const NeuralLink: React.FC<NeuralLinkProps> = ({ activeId, cardRefs }) => {
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-  const [targetPos, setTargetPos] = useState({ x: 0, y: 0 });
-  const [isVisible, setIsVisible] = useState(false);
+  const [coords, setCoords] = useState<{ x1: number, y1: number, x2: number, y2: number } | null>(null);
+  const mouseRef = useRef({ x: 0, y: 0 });
+  const rafRef = useRef<number>(0);
 
+  // Track mouse position globally
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePos({ x: e.clientX, y: e.clientY });
+      mouseRef.current = { x: e.clientX, y: e.clientY };
     };
-
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
+  // Animation Loop to update line coordinates
   useEffect(() => {
     if (activeId === null) {
-      setIsVisible(false);
+      setCoords(null);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       return;
     }
 
-    const card = cardRefs.current.get(activeId);
-    if (card) {
-      const rect = card.getBoundingClientRect();
-      // Target the center of the card
-      setTargetPos({ 
-        x: rect.left + rect.width / 2, 
-        y: rect.top + rect.height / 2
-      });
-      setIsVisible(true);
-    }
-  }, [activeId, mousePos]);
+    const update = () => {
+      const card = cardRefs.current.get(activeId);
+      if (card) {
+        const rect = card.getBoundingClientRect();
+        // Calculate center of the target card
+        const targetX = rect.left + rect.width / 2;
+        const targetY = rect.top + rect.height / 2;
+        
+        setCoords({
+            x1: mouseRef.current.x,
+            y1: mouseRef.current.y,
+            x2: targetX,
+            y2: targetY
+        });
+      }
+      rafRef.current = requestAnimationFrame(update);
+    };
 
-  if (!isVisible) return null;
+    update(); // Start loop
+
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [activeId, cardRefs]);
+
+  if (!coords) return null;
+
+  // --- MATH FOR SKETCHY CURVE ---
+  
+  // Calculate midpoint
+  const midX = (coords.x1 + coords.x2) / 2;
+  const midY = (coords.y1 + coords.y2) / 2;
+  
+  // Calculate vector
+  const dx = coords.x2 - coords.x1;
+  const dy = coords.y2 - coords.y1;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  
+  // Add a slight curve (Bézier Control Point)
+  // We use perpendicular offset to create an arc
+  // Offset depends on distance to make it look proportional
+  const curvature = Math.min(dist * 0.15, 60); 
+  
+  // Deterministic direction for curve so it doesn't flip wildly
+  const offsetDir = (coords.x2 > coords.x1) ? 1 : -1;
+  
+  // Control Point logic: Midpoint + Perpendicular Vector
+  const cpX = midX - (dy / dist) * curvature * offsetDir;
+  const cpY = midY + (dx / dist) * curvature * offsetDir;
+
+  // Primary Line (Strong)
+  const pathD = `M ${coords.x1} ${coords.y1} Q ${cpX} ${cpY} ${coords.x2} ${coords.y2}`;
+  
+  // Secondary Line (Messy/Sketchy Duplicate)
+  // Slight random offset for the control point of the ghost line
+  const pathD2 = `M ${coords.x1} ${coords.y1} Q ${cpX + 15} ${cpY - 15} ${coords.x2} ${coords.y2}`;
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[100] overflow-visible">
+    <div className="fixed inset-0 pointer-events-none z-[9999] overflow-visible">
         <svg className="w-full h-full overflow-visible">
             <defs>
-                <linearGradient id="neural-gradient" gradientUnits="userSpaceOnUse" x1={mousePos.x} y1={mousePos.y} x2={targetPos.x} y2={targetPos.y}>
-                    <stop offset="0%" stopColor="#29D8FF" stopOpacity="0.8" />
-                    <stop offset="50%" stopColor="#FFFFFF" stopOpacity="1" />
-                    <stop offset="100%" stopColor="#29D8FF" stopOpacity="0.8" />
-                </linearGradient>
-                <filter id="strong-glow">
-                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                    <feMerge>
-                        <feMergeNode in="coloredBlur"/>
-                        <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
+                {/* 
+                   Sketch Filter: Creates a rough, jagged edge on the stroke.
+                   This mimics the texture of a pencil or marker on paper.
+                */}
+                <filter id="sketch-roughness">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="3" result="noise" />
+                    <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" />
                 </filter>
             </defs>
 
-            {/* Mouse Reticle (The "Jack" plug) */}
-            <motion.circle 
-                cx={mousePos.x} 
-                cy={mousePos.y} 
-                r="6" 
-                stroke="#29D8FF" 
-                strokeWidth="2" 
-                fill="none" 
-                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 1, repeat: Infinity }}
-            />
-             <motion.circle 
-                cx={mousePos.x} 
-                cy={mousePos.y} 
-                r="2" 
-                fill="#fff" 
-            />
-
-            {/* The Main Connecting Line */}
-            <motion.path
-                d={`M ${mousePos.x} ${mousePos.y} L ${targetPos.x} ${targetPos.y}`}
-                stroke="url(#neural-gradient)"
-                strokeWidth="2"
-                fill="none"
-                filter="url(#strong-glow)"
-                initial={{ pathLength: 0, opacity: 0 }}
-                animate={{ pathLength: 1, opacity: 1 }}
-                transition={{ duration: 0.3 }}
-            />
-
-            {/* Data Packets traveling the line */}
-            {/* Packet 1 */}
-            <motion.circle r="4" fill="#fff" filter="drop-shadow(0 0 8px #29D8FF)">
-                <animateMotion 
-                    dur="0.6s" 
-                    repeatCount="indefinite"
-                    path={`M ${mousePos.x} ${mousePos.y} L ${targetPos.x} ${targetPos.y}`}
-                />
-            </motion.circle>
-
-            {/* Packet 2 (Delayed) */}
-            <motion.circle r="3" fill="#29D8FF">
-                <animateMotion 
-                    dur="0.6s" 
-                    begin="0.3s"
-                    repeatCount="indefinite"
-                    path={`M ${mousePos.x} ${mousePos.y} L ${targetPos.x} ${targetPos.y}`}
-                />
-            </motion.circle>
-            
-            {/* Target Lock Ring on Card */}
-            <motion.g transform={`translate(${targetPos.x}, ${targetPos.y})`}>
-                <motion.circle 
-                    r="20" 
+            {/* Target Area Scribble */}
+            <g transform={`translate(${coords.x2}, ${coords.y2})`}>
+                <circle 
+                    r="25" 
                     stroke="#29D8FF" 
+                    strokeWidth="1.5" 
+                    fill="none" 
+                    filter="url(#sketch-roughness)" 
+                    opacity="0.5" 
+                />
+                 <circle 
+                    r="18" 
+                    stroke="white" 
                     strokeWidth="1" 
                     fill="none" 
-                    strokeDasharray="5 5"
-                    animate={{ rotate: 360, scale: [1, 1.1, 1] }}
-                    transition={{ rotate: { duration: 4, repeat: Infinity, ease: "linear" }, scale: { duration: 1, repeat: Infinity } }}
+                    filter="url(#sketch-roughness)" 
+                    opacity="0.3" 
+                    strokeDasharray="4 2"
                 />
-                <circle r="4" fill="#29D8FF" className="animate-ping" />
-            </motion.g>
+            </g>
+
+            {/* Main Connecting Line (Cyan Marker Style) */}
+            <path 
+                d={pathD} 
+                stroke="#29D8FF" 
+                strokeWidth="2.5" 
+                fill="none" 
+                filter="url(#sketch-roughness)"
+                strokeLinecap="round"
+                opacity="0.8"
+            />
+
+            {/* Ghost Line (White Pencil Style) */}
+            <path 
+                d={pathD2} 
+                stroke="white" 
+                strokeWidth="1" 
+                fill="none" 
+                filter="url(#sketch-roughness)"
+                opacity="0.4"
+                strokeDasharray="8 4"
+            />
+
+            {/* Mouse Scribble */}
+            <g transform={`translate(${coords.x1}, ${coords.y1})`}>
+                {/* A small 'X' or crosshair at the mouse */}
+                <path 
+                    d="M -6 -6 L 6 6 M -6 6 L 6 -6" 
+                    stroke="#29D8FF" 
+                    strokeWidth="2" 
+                    filter="url(#sketch-roughness)" 
+                />
+            </g>
         </svg>
     </div>
   );
