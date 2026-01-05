@@ -224,35 +224,23 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                     Let's Talk
                     </a>
                 </motion.div>
+
+                {/* --- BOTTOM TAGLINE (Learn -> Build -> Repeat) --- */}
+                {/* Now centered below buttons for better flow and no overlap */}
+                <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={internalStart ? { opacity: 1, y: 0 } : {}}
+                    transition={{ delay: 1.8, duration: 0.8 }}
+                    className="mt-12 pointer-events-none"
+                >
+                    <h2 className="text-xl md:text-2xl font-sketch font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                        Learn <span className="text-white/40 text-xl align-middle mx-1">→</span> Build <span className="text-white/40 text-xl align-middle mx-1">→</span> Repeat
+                    </h2>
+                </motion.div>
             </div>
         </div>
 
       </div>
-
-      {/* --- BOTTOM TAGLINE (Learn -> Build -> Repeat) --- */}
-      {/* Positioned bottom-left to match reference screenshot, size reduced to avoid overlap */}
-      <motion.div 
-        initial={{ opacity: 0, x: -50 }}
-        animate={internalStart ? { opacity: 1, x: 0 } : {}}
-        transition={{ delay: 2, duration: 0.8, ease: "easeOut" }}
-        className="absolute bottom-6 left-6 md:bottom-10 md:left-10 z-20 pointer-events-none hidden md:block"
-      >
-        <h2 className="text-2xl md:text-3xl font-sketch font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-            Learn <span className="text-white/40 text-2xl align-middle mx-1">→</span> Build <span className="text-white/40 text-2xl align-middle mx-1">→</span> Repeat
-        </h2>
-      </motion.div>
-
-      {/* Mobile Center Version */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={internalStart ? { opacity: 1 } : {}}
-        transition={{ delay: 2, duration: 0.8 }}
-        className="absolute bottom-4 md:hidden z-20 pointer-events-none w-full text-center px-4"
-      >
-        <h2 className="text-xl font-sketch font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400">
-            Learn → Build → Repeat
-        </h2>
-      </motion.div>
 
     </section>
   );
