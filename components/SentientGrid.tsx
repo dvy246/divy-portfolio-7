@@ -12,22 +12,22 @@ export const SentientGrid: React.FC = () => {
     let width = canvas.width = window.innerWidth;
     let height = canvas.height = window.innerHeight;
     
-    // Grid Configuration
-    const spacing = 40;
+    // Grid Configuration - TIGHTER AND BRIGHTER
+    const spacing = 45;
     const rows = Math.ceil(height / spacing);
     const cols = Math.ceil(width / spacing);
     const mouse = { x: -1000, y: -1000 };
     
-    // Physics Configuration
-    const stiffness = 0.15;
-    const damping = 0.85; // Lower = more oscillation
-    const reach = 150; // Radius of influence
+    // Physics Configuration - MORE REACTIVE
+    const stiffness = 0.1;
+    const damping = 0.88; 
+    const reach = 250; // Larger influence radius
 
     interface Point {
       x: number;
       y: number;
-      ox: number; // Origin X
-      oy: number; // Origin Y
+      ox: number; 
+      oy: number; 
       vx: number;
       vy: number;
     }
@@ -44,8 +44,6 @@ export const SentientGrid: React.FC = () => {
     }
 
     const handleMouseMove = (e: MouseEvent) => {
-      // Relative position adjustment if canvas isn't full screen, 
-      // but here we assume full screen or handling rect
       const rect = canvas.getBoundingClientRect();
       mouse.x = e.clientX - rect.left;
       mouse.y = e.clientY - rect.top;
@@ -54,8 +52,6 @@ export const SentientGrid: React.FC = () => {
     const handleResize = () => {
       width = canvas.width = window.innerWidth;
       height = canvas.height = window.innerHeight;
-      // Note: A full re-init of points would be better here for strict responsiveness,
-      // but strictly resizing canvas works for the effect without crashing.
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -64,10 +60,6 @@ export const SentientGrid: React.FC = () => {
     const animate = () => {
       ctx.clearRect(0, 0, width, height);
       
-      // Styling
-      ctx.strokeStyle = '#29D8FF'; // Cyan
-      ctx.lineWidth = 0.3; 
-
       const colsCount = cols + 1;
 
       // Update Physics
@@ -79,12 +71,14 @@ export const SentientGrid: React.FC = () => {
         const dy = mouse.y - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
-        // Repulsion force (Sentient reaction)
+        // Repulsion force
         if (dist < reach) {
           const force = (reach - dist) / reach;
           const angle = Math.atan2(dy, dx);
-          const pushX = Math.cos(angle) * force * 5; // Strength
-          const pushY = Math.sin(angle) * force * 5;
+          
+          // Move points AWAY from mouse
+          const pushX = Math.cos(angle) * force * 8; 
+          const pushY = Math.sin(angle) * force * 8;
           p.vx -= pushX;
           p.vy -= pushY;
         }
@@ -105,12 +99,18 @@ export const SentientGrid: React.FC = () => {
         p.y += p.vy;
       }
 
-      // Draw Lines
+      // Draw Grid Lines
       ctx.beginPath();
-      
-      // Horizontal Lines
+      ctx.strokeStyle = 'rgba(41, 216, 255, 0.35)'; // Higher base opacity
+      ctx.lineWidth = 1; // Thicker lines
+
       for (let i = 0; i < points.length; i++) {
         const p = points[i];
+        
+        // Draw Dot at intersection
+        // ctx.fillStyle = 'rgba(41, 216, 255, 0.5)';
+        // ctx.fillRect(p.x - 1, p.y - 1, 2, 2);
+
         // Draw to right neighbor
         if ((i + 1) % colsCount !== 0 && i + 1 < points.length) {
           const next = points[i + 1];
@@ -124,14 +124,13 @@ export const SentientGrid: React.FC = () => {
           ctx.lineTo(bottom.x, bottom.y);
         }
       }
-      
       ctx.stroke();
 
-      // Opacity mask (fade edges)
+      // Opacity mask (Vignette)
       const gradient = ctx.createRadialGradient(width/2, height/2, 0, width/2, height/2, width);
-      gradient.addColorStop(0, 'rgba(5, 5, 5, 0)'); // Transparent center
-      gradient.addColorStop(0.8, 'rgba(5, 5, 5, 0.8)'); // Fade out edges
-      gradient.addColorStop(1, 'rgba(5, 5, 5, 1)'); 
+      gradient.addColorStop(0, 'rgba(2, 6, 23, 0)'); // Transparent center
+      gradient.addColorStop(0.8, 'rgba(2, 6, 23, 0.5)'); 
+      gradient.addColorStop(1, 'rgba(2, 6, 23, 1)'); // Solid edges
       
       ctx.fillStyle = gradient;
       ctx.fillRect(0,0,width,height);
@@ -147,10 +146,11 @@ export const SentientGrid: React.FC = () => {
     };
   }, []);
 
+  // Removed low opacity class, handling opacity in canvas context for better control
   return (
     <canvas 
       ref={canvasRef} 
-      className="absolute inset-0 z-0 pointer-events-auto opacity-[0.15]" 
+      className="absolute inset-0 z-0 pointer-events-auto mix-blend-screen" 
     />
   );
 };

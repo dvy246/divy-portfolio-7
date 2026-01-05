@@ -29,28 +29,28 @@ export const NeuralLink: React.FC<NeuralLinkProps> = ({ activeId, cardRefs }) =>
     const card = cardRefs.current.get(activeId);
     if (card) {
       const rect = card.getBoundingClientRect();
-      // Target the top-left technical corner or center
+      // Target the center of the card
       setTargetPos({ 
         x: rect.left + rect.width / 2, 
         y: rect.top + rect.height / 2
       });
       setIsVisible(true);
     }
-  }, [activeId, mousePos]); // Re-calc on mouse move to keep it snappy if card moves (3d tilt)
+  }, [activeId, mousePos]);
 
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[90]">
+    <div className="fixed inset-0 pointer-events-none z-[100] overflow-visible">
         <svg className="w-full h-full overflow-visible">
             <defs>
                 <linearGradient id="neural-gradient" gradientUnits="userSpaceOnUse" x1={mousePos.x} y1={mousePos.y} x2={targetPos.x} y2={targetPos.y}>
-                    <stop offset="0%" stopColor="#29D8FF" stopOpacity="0" />
-                    <stop offset="50%" stopColor="#29D8FF" stopOpacity="0.8" />
-                    <stop offset="100%" stopColor="#29D8FF" stopOpacity="0.2" />
+                    <stop offset="0%" stopColor="#29D8FF" stopOpacity="0.8" />
+                    <stop offset="50%" stopColor="#FFFFFF" stopOpacity="1" />
+                    <stop offset="100%" stopColor="#29D8FF" stopOpacity="0.8" />
                 </linearGradient>
-                <filter id="glow-line">
-                    <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                <filter id="strong-glow">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
                     <feMerge>
                         <feMergeNode in="coloredBlur"/>
                         <feMergeNode in="SourceGraphic"/>
@@ -58,33 +58,69 @@ export const NeuralLink: React.FC<NeuralLinkProps> = ({ activeId, cardRefs }) =>
                 </filter>
             </defs>
 
+            {/* Mouse Reticle (The "Jack" plug) */}
+            <motion.circle 
+                cx={mousePos.x} 
+                cy={mousePos.y} 
+                r="6" 
+                stroke="#29D8FF" 
+                strokeWidth="2" 
+                fill="none" 
+                animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 1, repeat: Infinity }}
+            />
+             <motion.circle 
+                cx={mousePos.x} 
+                cy={mousePos.y} 
+                r="2" 
+                fill="#fff" 
+            />
+
             {/* The Main Connecting Line */}
             <motion.path
                 d={`M ${mousePos.x} ${mousePos.y} L ${targetPos.x} ${targetPos.y}`}
                 stroke="url(#neural-gradient)"
-                strokeWidth="1.5"
+                strokeWidth="2"
                 fill="none"
-                filter="url(#glow-line)"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.2 }}
+                filter="url(#strong-glow)"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ duration: 0.3 }}
             />
 
-            {/* Data Packet traveling the line */}
-            <motion.circle
-                r="3"
-                fill="#fff"
-                filter="drop-shadow(0 0 4px #29D8FF)"
-            >
+            {/* Data Packets traveling the line */}
+            {/* Packet 1 */}
+            <motion.circle r="4" fill="#fff" filter="drop-shadow(0 0 8px #29D8FF)">
                 <animateMotion 
-                    dur="0.5s" 
+                    dur="0.6s" 
+                    repeatCount="indefinite"
+                    path={`M ${mousePos.x} ${mousePos.y} L ${targetPos.x} ${targetPos.y}`}
+                />
+            </motion.circle>
+
+            {/* Packet 2 (Delayed) */}
+            <motion.circle r="3" fill="#29D8FF">
+                <animateMotion 
+                    dur="0.6s" 
+                    begin="0.3s"
                     repeatCount="indefinite"
                     path={`M ${mousePos.x} ${mousePos.y} L ${targetPos.x} ${targetPos.y}`}
                 />
             </motion.circle>
             
-            {/* Terminal node at target */}
-            <circle cx={targetPos.x} cy={targetPos.y} r="4" fill="#29D8FF" className="animate-ping" />
+            {/* Target Lock Ring on Card */}
+            <motion.g transform={`translate(${targetPos.x}, ${targetPos.y})`}>
+                <motion.circle 
+                    r="20" 
+                    stroke="#29D8FF" 
+                    strokeWidth="1" 
+                    fill="none" 
+                    strokeDasharray="5 5"
+                    animate={{ rotate: 360, scale: [1, 1.1, 1] }}
+                    transition={{ rotate: { duration: 4, repeat: Infinity, ease: "linear" }, scale: { duration: 1, repeat: Infinity } }}
+                />
+                <circle r="4" fill="#29D8FF" className="animate-ping" />
+            </motion.g>
         </svg>
     </div>
   );

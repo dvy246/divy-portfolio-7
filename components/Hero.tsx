@@ -124,18 +124,19 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
 
         {/* --- Background Atmosphere (Sci-Fi Blue Mixture) --- */}
         {/* Base Layer: Deep Void */}
-        <div className="absolute inset-0 bg-[#020617]" />
+        <div className="absolute inset-0 bg-[#020617] z-0" />
         
-        {/* Sentient Grid (Interactive Physics Layer) */}
-        <SentientGrid />
+        {/* Sentient Grid (Interactive Physics Layer) - Z-INDEX 1 */}
+        <div className="absolute inset-0 z-[1]">
+            <SentientGrid />
+        </div>
         
-        {/* Layer 2: Cyber Cyan Glows (Mixture) */}
-        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-800/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-cyan-900/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
-        <div className="absolute top-[40%] right-[10%] w-[30%] h-[30%] bg-indigo-900/10 rounded-full blur-[80px] pointer-events-none" />
+        {/* Layer 2: Cyber Cyan Glows (Mixture) - Z-INDEX 2 */}
+        <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-800/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen animate-pulse z-[2]" style={{ animationDuration: '8s' }} />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-cyan-900/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen z-[2]" />
 
-        {/* Layer 4: Vignette for focus */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#020617_100%)] pointer-events-none" />
+        {/* Layer 4: Vignette for focus - Z-INDEX 3 */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#020617_100%)] pointer-events-none z-[3]" />
 
       <div className="max-w-5xl w-full flex flex-col items-center gap-8 relative z-10">
         
@@ -224,7 +225,6 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                 </motion.div>
 
                 {/* --- BOTTOM TAGLINE (Learn -> Build -> Repeat) --- */}
-                {/* Now centered below buttons for better flow and no overlap */}
                 <motion.div 
                     initial={{ opacity: 0, y: 10 }}
                     animate={internalStart ? { opacity: 1, y: 0 } : {}}
