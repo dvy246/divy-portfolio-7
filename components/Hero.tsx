@@ -3,6 +3,7 @@ import { motion, Variants } from 'framer-motion';
 import { usePortfolio } from '../context/PortfolioContext';
 import { CircularStorm } from './CircularStorm';
 import { ThunderStrike } from './ThunderStrike';
+import { SentientGrid } from './SentientGrid';
 
 // --- Sub-Component: Decryption Text Effect ---
 const DecryptionText: React.FC<{ text: string; start: boolean }> = ({ text, start }) => {
@@ -125,17 +126,14 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
         {/* Base Layer: Deep Void */}
         <div className="absolute inset-0 bg-[#020617]" />
         
-        {/* Layer 1: Deep Blue Gradient Mesh */}
-        <div className="absolute top-0 left-0 w-full h-[120%] bg-gradient-to-br from-blue-950/50 via-[#0a0a0a] to-transparent pointer-events-none" />
+        {/* Sentient Grid (Interactive Physics Layer) */}
+        <SentientGrid />
         
         {/* Layer 2: Cyber Cyan Glows (Mixture) */}
         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-800/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen animate-pulse" style={{ animationDuration: '8s' }} />
         <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-cyan-900/20 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
         <div className="absolute top-[40%] right-[10%] w-[30%] h-[30%] bg-indigo-900/10 rounded-full blur-[80px] pointer-events-none" />
 
-        {/* Layer 3: Technical Grid */}
-        <div className="absolute inset-0 bg-grid-light dark:bg-grid-dark bg-[length:50px_50px] opacity-[0.07] pointer-events-none" />
-        
         {/* Layer 4: Vignette for focus */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#020617_100%)] pointer-events-none" />
 

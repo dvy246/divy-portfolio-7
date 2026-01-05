@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExternalLink, Github, Lock, Unlock, Cpu } from 'lucide-react';
 import { usePortfolio } from '../context/PortfolioContext';
@@ -6,12 +6,16 @@ import { ElectricOverlay } from './ElectricOverlay';
 import { ThunderStrike } from './ThunderStrike';
 import { Starfield } from './Starfield';
 import { CardContainer, CardBody, CardItem } from './ui/3d-card';
+import { NeuralLink } from './NeuralLink';
 
 export const Projects: React.FC = () => {
   const { projects } = usePortfolio();
   const [revealedProjects, setRevealedProjects] = useState<number[]>([]);
   const [thunderActive, setThunderActive] = useState(false);
   const [hoveredProject, setHoveredProject] = useState<number | null>(null);
+  
+  // Refs for Neural Link connection points
+  const cardRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
 
   // Handle the "Decrypt" click
   const handleDecrypt = (id: number) => {
@@ -35,7 +39,10 @@ export const Projects: React.FC = () => {
       {/* Full Screen Shock Effect for Projects */}
       <ThunderStrike isActive={thunderActive} onComplete={() => {}} />
 
-      <div className="max-w-6xl mx-auto">
+      {/* NEURAL LINK OVERLAY */}
+      <NeuralLink activeId={hoveredProject} cardRefs={cardRefs} />
+
+      <div className="max-w-6xl mx-auto relative z-10">
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -58,6 +65,7 @@ export const Projects: React.FC = () => {
             return (
               <div 
                   key={project.id} 
+                  ref={(el) => { cardRefs.current.set(project.id, el) }}
                   className="min-h-[450px]"
                   onMouseEnter={() => setHoveredProject(project.id)}
                   onMouseLeave={() => setHoveredProject(null)}
