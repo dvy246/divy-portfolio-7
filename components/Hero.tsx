@@ -43,7 +43,7 @@ const DecryptionText: React.FC<{ text: string; start: boolean }> = ({ text, star
 
 // --- Sub-Component: Sketch Marker Underline (Yellow + Cyan) ---
 const SketchUnderline = () => (
-    <svg className="absolute -bottom-6 left-0 w-full h-12 pointer-events-none overflow-visible z-[-1]" viewBox="0 0 300 30" preserveAspectRatio="none">
+    <svg className="absolute -bottom-4 left-0 w-full h-8 pointer-events-none overflow-visible z-[-1]" viewBox="0 0 300 30" preserveAspectRatio="none">
         {/* Yellow Marker Line (Reference Style) */}
         <motion.path 
             d="M5,15 Q75,5 145,18 T295,10"
@@ -118,7 +118,7 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
   };
 
   return (
-    <section className="min-h-screen flex flex-col justify-center items-center relative pt-24 px-4 overflow-hidden selection:bg-cyan-500/30">
+    <section className="min-h-screen flex flex-col justify-center items-center relative pt-20 px-4 overflow-hidden selection:bg-cyan-500/30">
         <ThunderStrike isActive={showThunder} onComplete={onThunderComplete} />
 
         {/* --- Background Atmosphere (Sci-Fi Blue Mixture) --- */}
@@ -139,7 +139,7 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
         {/* Layer 4: Vignette for focus */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#020617_100%)] pointer-events-none" />
 
-      <div className="max-w-5xl w-full flex flex-col items-center gap-12 relative z-10">
+      <div className="max-w-5xl w-full flex flex-col items-center gap-8 relative z-10">
         
         <div className="flex flex-col items-center relative z-10">
             
@@ -148,7 +148,7 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                 variants={glitchVariants}
                 initial="hidden"
                 animate={internalStart ? "visible" : "hidden"}
-                className="relative group w-64 h-64 flex-shrink-0 cursor-pointer mb-12"
+                className="relative group w-48 h-48 md:w-56 md:h-56 flex-shrink-0 cursor-pointer mb-8"
                 onHoverStart={() => setIsHoveringAvatar(true)}
                 onHoverEnd={() => setIsHoveringAvatar(false)}
             >
@@ -184,10 +184,10 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
             <div className="flex flex-col items-center text-center max-w-4xl">
                 
                 {/* --- SKETCH STYLE HEADLINE --- */}
-                <div className="relative mb-8 p-2 inline-block">
-                    <h1 className="text-7xl md:text-9xl text-white leading-[1.1] font-sketch font-extrabold tracking-tighter relative z-20 transform -rotate-2"
+                <div className="relative mb-6 p-2 inline-block">
+                    <h1 className="text-5xl md:text-7xl text-white leading-[1.1] font-sketch font-extrabold tracking-tighter relative z-20 transform -rotate-2"
                         style={{ 
-                            textShadow: "5px 5px 0px #000, -2px -2px 0px rgba(0,0,0,0.5)",
+                            textShadow: "4px 4px 0px #000, -2px -2px 0px rgba(0,0,0,0.5)",
                             filter: "drop-shadow(0px 0px 20px rgba(41,216,255,0.15))" // Subtle Blue Glow behind text
                         }}
                     >
@@ -198,7 +198,7 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                     {internalStart && <SketchUnderline />}
                 </div>
                 
-                <div className="text-xl md:text-2xl text-gray-300 leading-relaxed font-sans font-medium tracking-wide max-w-2xl min-h-[3rem] drop-shadow-lg">
+                <div className="text-lg md:text-xl text-gray-300 leading-relaxed font-sans font-medium tracking-wide max-w-2xl min-h-[3rem] drop-shadow-lg">
                 {internalStart && (
                     <motion.p
                         initial={{ opacity: 0, y: 10 }}
@@ -214,7 +214,7 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                 initial={{ opacity: 0, y: 20 }}
                 animate={internalStart ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: 1.5, duration: 0.5 }}
-                className="mt-12 flex gap-6 justify-center"
+                className="mt-8 flex gap-4 md:gap-6 justify-center flex-wrap"
                 >
                     <a href="#projects" onClick={(e) => handleShockNavigation(e, '#projects')} className="group relative px-8 py-4 bg-white text-black font-sketch font-bold text-lg tracking-widest uppercase overflow-hidden hover:scale-105 transition-transform shadow-[4px_4px_0px_0px_rgba(41,216,255,1)] hover:shadow-[2px_2px_0px_0px_rgba(41,216,255,1)]">
                     <span className="relative z-10">View Work</span>
@@ -230,15 +230,15 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
       </div>
 
       {/* --- BOTTOM TAGLINE (Learn -> Build -> Repeat) --- */}
-      {/* Positioned bottom-left to match reference screenshot */}
+      {/* Positioned bottom-left to match reference screenshot, size reduced to avoid overlap */}
       <motion.div 
         initial={{ opacity: 0, x: -50 }}
         animate={internalStart ? { opacity: 1, x: 0 } : {}}
         transition={{ delay: 2, duration: 0.8, ease: "easeOut" }}
-        className="absolute bottom-8 left-6 md:bottom-12 md:left-12 z-20 pointer-events-none hidden md:block"
+        className="absolute bottom-6 left-6 md:bottom-10 md:left-10 z-20 pointer-events-none hidden md:block"
       >
-        <h2 className="text-4xl md:text-5xl font-sketch font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-            Learn <span className="text-white/40 text-3xl align-middle mx-1">→</span> Build <span className="text-white/40 text-3xl align-middle mx-1">→</span> Repeat
+        <h2 className="text-2xl md:text-3xl font-sketch font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+            Learn <span className="text-white/40 text-2xl align-middle mx-1">→</span> Build <span className="text-white/40 text-2xl align-middle mx-1">→</span> Repeat
         </h2>
       </motion.div>
 
@@ -247,9 +247,9 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
         initial={{ opacity: 0 }}
         animate={internalStart ? { opacity: 1 } : {}}
         transition={{ delay: 2, duration: 0.8 }}
-        className="absolute bottom-6 md:hidden z-20 pointer-events-none w-full text-center px-4"
+        className="absolute bottom-4 md:hidden z-20 pointer-events-none w-full text-center px-4"
       >
-        <h2 className="text-2xl font-sketch font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400">
+        <h2 className="text-xl font-sketch font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400">
             Learn → Build → Repeat
         </h2>
       </motion.div>
