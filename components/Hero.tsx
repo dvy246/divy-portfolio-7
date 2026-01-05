@@ -120,11 +120,6 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
   return (
     <section className="min-h-screen flex flex-col justify-center items-center relative pt-20 px-4 overflow-hidden selection:bg-cyan-500/30">
         <ThunderStrike isActive={showThunder} onComplete={onThunderComplete} />
-
-        {/* 
-            CRITICAL: No solid background div here! 
-            We rely on ParticleMetamorphosis in App.tsx to provide the background.
-        */}
         
         {/* Layer 2: Cyber Cyan Glows (Mixture) - transparent gradients */}
         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-blue-800/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen animate-pulse z-[2]" style={{ animationDuration: '8s' }} />
@@ -146,7 +141,7 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                 onHoverStart={() => setIsHoveringAvatar(true)}
                 onHoverEnd={() => setIsHoveringAvatar(false)}
             >
-                {/* LAYER 0: The Storm/Lightning Layer (Behind) */}
+                {/* LAYER 0: The Circular Storm Effect (Reverted) */}
                 <CircularStorm isHovering={isHoveringAvatar} />
 
                 {/* LAYER 0: The Back Glow */}
@@ -154,7 +149,7 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                     animate={{ opacity: isHoveringAvatar ? 0.8 : 0.4 }} 
                     className="absolute inset-0 bg-cyan-500/20 blur-[50px] rounded-full z-0" 
                 />
-                
+
                 {/* LAYER 1: The Rotating Gradient Ring (Outer Border) */}
                 <motion.div
                     className="absolute -inset-[3px] rounded-full z-10 pointer-events-none"
@@ -163,13 +158,13 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                     transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                 />
 
-                {/* LAYER 2: The Image Container */}
-                <div className="absolute inset-1 rounded-full overflow-hidden z-20 bg-[#050505] border-2 border-white/5">
+                {/* LAYER 1: The Image Container */}
+                <div className="absolute inset-1 rounded-full overflow-hidden z-20 bg-[#050505] border-2 border-white/5 relative">
                     <img 
                         src={personalInfo.avatarUrl} 
                         alt="Profile" 
-                        className="w-full h-full object-cover object-top opacity-100"
-                        style={{ filter: 'none' }} 
+                        className="w-full h-full object-cover object-top opacity-100 relative z-20"
+                        style={{ filter: isHoveringAvatar ? 'contrast(1.2) brightness(1.1)' : 'none', transition: 'filter 0.3s' }} 
                     />
                 </div>
             </motion.div>
