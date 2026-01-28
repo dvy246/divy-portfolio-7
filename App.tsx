@@ -1,8 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Hero } from './components/Hero';
 import { Skills } from './components/Skills';
+import { Toolkit } from './components/Toolkit';
 import { Projects } from './components/Projects';
 import { Certificates } from './components/Certificates';
 import { Blogs } from './components/Blogs';
@@ -25,6 +27,7 @@ const MainPortfolio: React.FC<{ startHeroAnim: boolean }> = ({ startHeroAnim }) 
         {/* Pass the animation signal to Hero */}
         <Hero startAnimation={startHeroAnim} />
         <Skills />
+        <Toolkit />
         <Projects />
         <Certificates />
         <Resume />

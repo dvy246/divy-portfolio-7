@@ -1,4 +1,5 @@
-import { Brain, Database, FileText, Layers, LineChart, Network, Terminal, Code2, Bot, Sparkles, Cpu, Workflow } from 'lucide-react';
+
+import { Brain, Database, FileText, Layers, LineChart, Network, Terminal, Code2, Bot, Sparkles, Cpu, Workflow, BarChart3, Cloud, Box, GitBranch, Globe, Search, Container, Link, Smile, Zap, Server, Github, Eye } from 'lucide-react';
 
 export const PERSONAL_INFO = {
   name: "Divy Yadav",
@@ -18,6 +19,7 @@ export const PERSONAL_INFO = {
 export const NAVIGATION_LINKS = [
   { name: "Projects", href: "#projects" },
   { name: "Stack", href: "#skills" },
+  { name: "Toolkit", href: "#toolkit" },
   { name: "Certificates", href: "#certificates" },
   { name: "Experience", href: "#resume" },
   { name: "Writing", href: "#blogs" },
@@ -66,6 +68,33 @@ export const SKILL_CATEGORIES = [
     description: "Insights, Visualization & Storage",
     techStack: ["Pandas", "NumPy", "SQL", "PowerBI", "Tableau", "Matplotlib", "Seaborn", "Excel/Sheets"]
   },
+];
+
+export const TOOLKIT_ITEMS = [
+  { name: "Python", icon: Code2, color: "#3776AB" },
+  { name: "Pandas", icon: Database, color: "#150458" },
+  { name: "Scikit-learn", icon: Brain, color: "#F7931E" },
+  { name: "Plotly", icon: BarChart3, color: "#3F4F75" },
+  { name: "Matplotlib", icon: LineChart, color: "#11557C" },
+  { name: "SQLAlchemy", icon: Database, color: "#D71F00" },
+  { name: "PyTorch", icon: Layers, color: "#EE4C2C" },
+  { name: "TensorFlow", icon: Network, color: "#FF6F00" },
+  { name: "OpenCV", icon: Eye, color: "#5C3EE8" }, 
+  { name: "Hugging Face", icon: Smile, color: "#FFD21E" },
+  { name: "LangChain", icon: Link, color: "#1C3C3C" },
+  { name: "LlamaIndex", icon: Bot, color: "#BA68C8" },
+  { name: "LangGraph", icon: Workflow, color: "#29D8FF" },
+  { name: "Ollama", icon: Terminal, color: "#FFFFFF" },
+  { name: "Streamlit", icon: Globe, color: "#FF4B4B" },
+  { name: "Gradio", icon: Box, color: "#F59E0B" },
+  { name: "FastAPI", icon: Zap, color: "#009688" },
+  { name: "Flask", icon: Server, color: "#000000" },
+  { name: "Git", icon: GitBranch, color: "#F05032" },
+  { name: "GitHub", icon: Github, color: "#181717" },
+  { name: "Docker", icon: Container, color: "#2496ED" },
+  { name: "AWS", icon: Cloud, color: "#FF9900" },
+  { name: "PostgreSQL", icon: Database, color: "#336791" },
+  { name: "Selenium", icon: Search, color: "#43B02A" },
 ];
 
 export const PROJECTS = [
