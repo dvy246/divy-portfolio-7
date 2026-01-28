@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { PERSONAL_INFO, SKILL_CATEGORIES, PROJECTS, BLOGS, RESUME_ENTRIES, CERTIFICATES } from '../data';
@@ -106,7 +107,8 @@ export const PortfolioProvider: React.FC<{ children: React.ReactNode }> = ({ chi
               id: b.id,
               title: b.title,
               date: b.date,
-              link: b.link
+              link: b.link,
+              image: b.image_url || "https://picsum.photos/600/400?random=99"
           }));
           if (dbBlogs.length > 0) {
             setData(prev => ({ ...prev, blogs: dbBlogs }));

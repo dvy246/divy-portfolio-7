@@ -168,19 +168,22 @@ export const BLOGS = [
     id: 1,
     title: "Demystifying Transformers: Attention is All You Need",
     date: "Nov 15, 2023",
-    link: "#"
+    link: "#",
+    image: "https://picsum.photos/600/400?random=30"
   },
   {
     id: 2,
     title: "Why Your RAG Pipeline is Hallucinating (and how to fix it)",
     date: "Oct 02, 2023",
-    link: "#"
+    link: "#",
+    image: "https://picsum.photos/600/400?random=31"
   },
   {
     id: 3,
     title: "The Mathematical Beauty of Gradient Descent",
     date: "Sep 10, 2023",
-    link: "#"
+    link: "#",
+    image: "https://picsum.photos/600/400?random=32"
   }
 ];
 
