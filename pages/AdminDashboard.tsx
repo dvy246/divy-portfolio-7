@@ -122,6 +122,11 @@ export const AdminDashboard: React.FC = () => {
   // AUTH CHECK
   useEffect(() => {
     const checkSession = async () => {
+      // MASTER ADMIN BYPASS
+      if (localStorage.getItem('is_master_admin') === 'true') {
+          return;
+      }
+
       // If Supabase is not configured or user is not logged in, boot them out
       if (!supabase) {
           navigate('/login');
@@ -182,6 +187,7 @@ export const AdminDashboard: React.FC = () => {
 
   // --- Actions ---
   const handleLogout = async () => {
+    localStorage.removeItem('is_master_admin');
     if (supabase) await (supabase.auth as any).signOut();
     navigate('/login');
   };
@@ -384,7 +390,9 @@ export const AdminDashboard: React.FC = () => {
                                             src={avatarFile ? URL.createObjectURL(avatarFile) : profileForm.avatarUrl} 
                                             alt="Preview" 
                                             className="w-full h-full object-cover" 
-                                            onError={(e) => { e.currentTarget.src = "https://via.placeholder.com/150?text=No+Img"; }}
+                                            onError={(e) => { 
+                                                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(profileForm.name || 'Admin')}&background=0D8ABC&color=fff&size=512`; 
+                                            }}
                                         />
                                         <label className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                                             <Upload size={24} className="text-white" />

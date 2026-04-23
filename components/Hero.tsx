@@ -165,6 +165,9 @@ export const Hero: React.FC<{ startAnimation?: boolean }> = ({ startAnimation = 
                     <img 
                         src={personalInfo.avatarUrl} 
                         alt="Profile" 
+                        onError={(e) => {
+                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(personalInfo.name)}&background=0D8ABC&color=fff&size=512`;
+                        }}
                         className="w-full h-full object-cover object-top"
                         style={{ 
                             filter: isHoveringAvatar ? 'contrast(1.1) brightness(1.1)' : 'none', 

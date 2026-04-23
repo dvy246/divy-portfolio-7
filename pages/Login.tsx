@@ -99,6 +99,12 @@ export const Login: React.FC = () => {
 
   // Check if already logged in
   useEffect(() => {
+      const isMaster = localStorage.getItem('is_master_admin') === 'true';
+      if (isMaster) {
+          navigate('/admin');
+          return;
+      }
+
       if(supabase) {
           (supabase.auth as any).getSession().then(({ data: { session } }: any) => {
               if (session) navigate('/admin');
@@ -115,6 +121,17 @@ export const Login: React.FC = () => {
 
     setLoading(true);
     setError('');
+
+    // --- MASTER SECRET CHECK ---
+    const secretEmail = import.meta.env.VITE_ADMIN_EMAIL;
+    const secretPass = import.meta.env.VITE_ADMIN_PASSWORD;
+
+    let bypassSupabase = false;
+    if (secretEmail && secretPass && email === secretEmail && password === secretPass) {
+        // We still TRY to sign in with Supabase to get a real session if possible
+        bypassSupabase = true;
+    }
+    // ---------------------------
 
     try {
         let result;
@@ -133,10 +150,17 @@ export const Login: React.FC = () => {
         const { error: authError } = result;
 
         if (authError) {
+            // If Supabase fails but we match the secret, allow bypass
+            if (bypassSupabase) {
+                localStorage.setItem('is_master_admin', 'true');
+                navigate('/admin');
+                setLoading(false);
+                return;
+            }
             setError(authError.message);
         } else {
-            // If signup successful, it might auto-login or require email verification
-            // For most Supabase defaults, it auto-logs in unless "Confirm Email" is on.
+            // Success in Supabase!
+            localStorage.removeItem('is_master_admin'); // Ensure we use real session if available
             if (mode === 'signup') {
                  // Check if session exists immediately
                  const { data: { session } } = await (supabase.auth as any).getSession();

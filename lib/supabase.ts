@@ -33,9 +33,12 @@ try {
         return val;
     };
 
-    // Priority: 1. Hardcoded (Instant Fix) -> 2. Env -> 3. LocalStorage
-    const supabaseUrl = HARDCODED_URL || getEnv('VITE_SUPABASE_URL') || getEnv('REACT_APP_SUPABASE_URL');
-    const supabaseKey = HARDCODED_KEY || getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('REACT_APP_SUPABASE_ANON_KEY');
+    // Priority: 1. LocalStorage/Env (User Config) -> 2. Hardcoded (Default Fallback)
+    const envUrl = getEnv('VITE_SUPABASE_URL') || getEnv('REACT_APP_SUPABASE_URL');
+    const envKey = getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('REACT_APP_SUPABASE_ANON_KEY');
+
+    const supabaseUrl = envUrl || HARDCODED_URL;
+    const supabaseKey = envKey || HARDCODED_KEY;
 
     if (supabaseUrl && supabaseKey && typeof supabaseUrl === 'string' && supabaseUrl.startsWith('http')) {
         supabaseInstance = createClient(supabaseUrl, supabaseKey);
